@@ -349,6 +349,21 @@ Only the credentials you actually use are required.
 | `KAGGLE_USERNAME`, `KAGGLE_KEY`, `HF_TOKEN`, `FRED_API_KEY` | Phase 2 dataset construction hits the corresponding public data source |
 | `FIN_PIPELINE_SUMMARY_EMBED_MODEL`, `FIN_PIPELINE_SUMMARY_RERANKER_MODEL` | You want to override the Phase 1b retrieval defaults |
 
+## Citation
+
+OpenFinGym was accepted to Findings of EMNLP 2026. If you use this
+repository in your work, please cite:
+
+```bibtex
+@inproceedings{zhang2026openfingym,
+  title     = {{OpenFinGym}: A Verifiable Multi-Task Gym Environment for Evaluating Quant Agents},
+  author    = {Zhang, Kaicheng and Ge, Wen and Jiang, Lei and Yang, Weixin and Langham-Lopez, Jordan and Yu, Jialin and Szpruch, Lukasz and Ni, Hao},
+  booktitle = {Findings of the Association for Computational Linguistics: EMNLP 2026},
+  year      = {2026},
+  url       = {https://arxiv.org/abs/2606.26350}
+}
+```
+
 ## Contributing
 
 Issues and PRs welcome. See [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md)
