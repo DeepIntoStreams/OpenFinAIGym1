@@ -1,0 +1,86 @@
+# EDIT: replace `openfingym` with your namespace
+# Populate the workspace PVC from GitHub; use transfer_pod.yaml without egress.
+# WARNING: existing checkouts are reset to origin/main, discarding local edits.
+# Use `create`, not `apply`, because this Job uses generateName:
+#   kubectl -n openfingym create -f bootstrap_repo.yaml
+#   JOB=$(kubectl -n openfingym get jobs --sort-by=.metadata.creationTimestamp \
+#     -o name | grep bootstrap-openfingym | tail -1)
+#   kubectl -n openfingym wait --for=condition=complete "$JOB" --timeout=600s
+#   kubectl -n openfingym logs "$JOB"
+#   kubectl -n openfingym delete "$JOB"
+# Or run the retrying helper:
+#   bash deploy/k8s/run_bootstrap.sh
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: bootstrap-openfingym-
+  namespace: openfingym
+  labels:
+    # Kueue local queue. Drop this label on clusters without Kueue.
+    kueue.x-k8s.io/queue-name: openfingym-user-queue
+spec:
+  completions: 1
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: bootstrap
+          image: alpine/git:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -eux
+              ROOT=/mnt/openfingym/code
+              mkdir -p "${ROOT}"
+              cd "${ROOT}"
+
+              # OpenFinGym1
+              if [ -d OpenFinGym1/.git ]; then
+                echo "OpenFinGym1 exists — fetch + checkout + reset"
+                cd OpenFinGym1
+                git fetch --depth=1 origin main
+                git checkout main || git checkout -B main origin/main
+                git reset --hard origin/main
+                cd ..
+              else
+                git clone --depth=1 --branch main \
+                    https://github.com/DeepIntoStreams/OpenFinGym1.git OpenFinGym1
+              fi
+
+              # SkyRL; pin a commit or tag for reproducible deployments.
+              if [ -d SkyRL-main/.git ]; then
+                echo "SkyRL-main exists — fetch + reset"
+                cd SkyRL-main
+                git fetch --depth=1 origin main
+                git reset --hard origin/main
+                cd ..
+              else
+                git clone --depth=1 --branch main \
+                    https://github.com/NovaSky-AI/SkyRL SkyRL-main
+              fi
+
+              echo "=== Bootstrap done. Tree: ==="
+              ls -la OpenFinGym1
+              ls -la SkyRL-main
+
+              # Prepare mount targets for later Jobs.
+              mkdir -p /mnt/openfingym/sif_cache
+              mkdir -p /mnt/openfingym/run_output
+              mkdir -p /mnt/openfingym/hf_cache
+              mkdir -p /mnt/openfingym/podman_storage
+              echo "Subdirs ready."
+          resources:
+            requests:
+              cpu: 1
+              memory: 2Gi
+            limits:
+              cpu: 2
+              memory: 4Gi
+          volumeMounts:
+            - { name: workspace, mountPath: /mnt/openfingym }
+      volumes:
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: openfingym-workspace

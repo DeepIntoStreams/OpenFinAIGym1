@@ -1,0 +1,165 @@
+# Kubernetes RL Job rendered by launch_rl.sh with envsubst.
+# Variables: NAMESPACE, JOB_NAME_PREFIX, IMAGE, NUM_GPUS, CPU_REQ, CPU_LIM,
+# RAM_REQ_GB, RAM_LIM_GB, LAUNCHER_SCRIPT, HARBOR_TRIAL_CONFIG, and PROVIDER.
+# The workspace PVC supplies code, outputs, image caches, and model caches;
+# /dev/shm is a 16 GiB memory volume for vLLM and Ray.
+#
+# SETUID/SETGID support classic Singularity fakeroot. If PodSecurity blocks
+# them, remove the capability block and use Apptainer user namespaces or
+# `--provider podman`.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: "${JOB_NAME_PREFIX}-"
+  namespace: "${NAMESPACE}"
+  labels:
+    # Kueue local queue. Drop this label on clusters without Kueue.
+    kueue.x-k8s.io/queue-name: "${NAMESPACE}-user-queue"
+spec:
+  completions: 1
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: openfinai-rl
+    spec:
+      restartPolicy: Never
+
+      containers:
+        - name: trainer
+          image: "${IMAGE}"
+          imagePullPolicy: Always
+
+          command: ["/bin/bash", "-lc"]
+          args:
+            - |
+              set -euo pipefail
+              # Expose SkyRL examples without shadowing installed packages.
+              mkdir -p /tmp/skyrl_examples_only
+              ln -sfn /workspace/SkyRL-main/examples /tmp/skyrl_examples_only/examples
+
+              # The repository root supports curated reward imports.
+              export PYTHONPATH="/workspace/OpenFinGym1:/workspace/OpenFinGym1/src:/tmp/skyrl_examples_only:${PYTHONPATH:-}"
+
+              # WARNING: mutates the PVC checkout on every start. Empty these
+              # re-export files to avoid optional auto-pipeline dependencies.
+              for f in src/openfinai_pipeline/__init__.py \
+                       src/openfinai_pipeline/benchmark/__init__.py \
+                       src/openfinai_pipeline/corpus/__init__.py; do
+                : > "/workspace/OpenFinGym1/$f"
+              done
+
+              # FSDP requires libnuma for NUMA affinity.
+              if ! ldconfig -p | grep -q libnuma.so.1; then
+                apt-get update -qq && \
+                  apt-get install -y --no-install-recommends libnuma1 libnuma-dev || true
+              fi
+
+              # Bootstrap rootless Podman only for that provider.
+              if [ "${PROVIDER}" = "podman" ]; then
+                if ! command -v podman >/dev/null 2>&1; then
+                  apt-get update -qq && \
+                    apt-get install -y --no-install-recommends \
+                      podman uidmap fuse-overlayfs slirp4netns \
+                    || true
+                fi
+                # Rootless user namespaces require subordinate IDs.
+                grep -q '^root:' /etc/subuid 2>/dev/null \
+                  || echo 'root:100000:65536' >> /etc/subuid
+                grep -q '^root:' /etc/subgid 2>/dev/null \
+                  || echo 'root:100000:65536' >> /etc/subgid
+                # Pre-pull the shared sandbox before concurrent trials.
+                mkdir -p /workspace/podman_storage
+                podman --root /workspace/podman_storage \
+                  pull nihao0630/openfinai-base:v1 || true
+                # Surface storage-driver fallback warnings early.
+                podman --root /workspace/podman_storage info \
+                  --format '{{.Store.GraphDriverName}}' || true
+              fi
+
+              # Install reward-bank deps and restore Transformers-compatible
+              # huggingface_hub after the project dependency downgrade.
+              pip install --quiet --no-input \
+                'scikit-learn>=1.8.0,<2.0.0' \
+                'huggingface_hub>=1.0' \
+                || true
+
+              # Replace the image's dangling editable skyrl-gym install.
+              pip install --quiet --no-input --no-deps \
+                /workspace/SkyRL-main/skyrl-gym \
+                || true
+
+              # SkyRL requires a non-empty key even with console logging.
+              : "${WANDB_API_KEY:=${WANDB_API_KEY_FALLBACK:-disabled}}"
+              export WANDB_API_KEY
+              # Keep the fallback key offline.
+              export WANDB_MODE="${WANDB_MODE:-disabled}"
+
+              cd /workspace/OpenFinGym1
+              echo "=== git HEAD ==="
+              git log -1 --oneline || true
+              echo "=== launching ${LAUNCHER_SCRIPT} ==="
+              exec bash "${LAUNCHER_SCRIPT}"
+
+          resources:
+            requests:
+              cpu: "${CPU_REQ}"
+              memory: "${RAM_REQ_GB}Gi"
+              nvidia.com/gpu: ${NUM_GPUS}
+            limits:
+              cpu: "${CPU_LIM}"
+              memory: "${RAM_LIM_GB}Gi"
+              nvidia.com/gpu: ${NUM_GPUS}
+
+          env:
+            # Optional credentials:
+            #   kubectl -n <ns> create secret generic openfinai-secrets \
+            #       --from-literal=huggingface=<token> --from-literal=wandb=<key>
+            - name: HUGGING_FACE_HUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: openfinai-secrets
+                  key: huggingface
+                  optional: true
+            - name: WANDB_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openfinai-secrets
+                  key: wandb
+                  optional: true
+            # Satisfies validation when no W&B key is configured.
+            - name: WANDB_API_KEY_FALLBACK
+              value: "disabled"
+            - name: HF_HOME
+              value: /root/.cache/huggingface
+            # Select the trial config and sandbox bootstrap path.
+            - name: HARBOR_TRIAL_CONFIG
+              value: "${HARBOR_TRIAL_CONFIG}"
+            - name: PROVIDER
+              value: "${PROVIDER}"
+
+          volumeMounts:
+            - { name: workspace,   mountPath: /workspace,                                 subPath: code }
+            - { name: workspace,   mountPath: /workspace/OpenFinGym1/data/run_output,     subPath: run_output }
+            - { name: workspace,   mountPath: /workspace/sif_cache,                       subPath: sif_cache }
+            - { name: workspace,   mountPath: /workspace/podman_storage,                  subPath: podman_storage }
+            - { name: workspace,   mountPath: /root/.cache/huggingface,                   subPath: hf_cache }
+            - { name: shm,         mountPath: /dev/shm }
+
+          securityContext:
+            capabilities:
+              add: ["SETUID", "SETGID"]
+
+      # EDIT or remove: pin to your GPU node pool
+      nodeSelector:
+        nvidia.com/gpu.product: NVIDIA-H100-80GB-HBM3
+
+      volumes:
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: openfingym-workspace
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Gi

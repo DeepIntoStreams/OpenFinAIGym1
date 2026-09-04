@@ -1,0 +1,9 @@
+# Shared OpenFinGym Harbor job config.
+#
+# Keep verifier reward dictionaries rich at the trial level, but aggregate jobs
+# using the scalar "reward" field when it exists. This avoids patching Harbor's
+# built-in Mean metric, which expects single-key reward dictionaries.
+metrics:
+  - type: uv-script
+    kwargs:
+      script_path: scripts/harbor_scalar_reward_metric.py

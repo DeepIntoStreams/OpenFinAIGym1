@@ -1,0 +1,58 @@
+# SkyRL trial config: single-shot agent with a Singularity default.
+# config/harbor_trial.yaml remains the manual ReAct/Docker baseline.
+# main_rl injects task.path, model_name, api_base, and session_id.
+# Rollout details carry token IDs and logprobs to HarborGenerator.
+# Each single-shot trajectory is one action and one reward.
+
+trials_dir: ~/trials
+
+timeout_multiplier: 1.0
+
+agent:
+  # One LLM call produces train.py for in-container verification.
+  name: simple-llm
+  import_path: openfinai_harbor.agents.single_shot_llm:SingleShotLLMAgent
+
+  override_timeout_sec: 600
+
+  kwargs:
+    temperature: 1.0
+
+    # Resolved from the repository root by the RL launcher.
+    system_prompt_path: examples/prompts/financial_expert.txt
+
+    # Required by SkyRL's step-wise trainer.
+    collect_rollout_details: true
+
+    # Token caps must match max_model_len in config/rl.yaml.
+    # Hosted-vLLM validation requires all four fields.
+    model_info:
+      max_input_tokens: 8192
+      max_output_tokens: 8192
+      input_cost_per_token: 0.0
+      output_cost_per_token: 0.0
+
+    # Forwarded to LiteLLM for request handling and sampling.
+    llm_kwargs:
+      timeout: 900
+      max_retries: 0
+      top_p: 1.0
+      top_k: -1
+      min_p: 0.0
+
+environment:
+  # Singularity shares the host network, exposing local vLLM and verifier.
+  # For local Docker development, override with:
+  #   harbor_trial_config.environment.type=docker
+  # Daytona and Modal do not support the required verifier reachability.
+  type: singularity
+  override_cpus: 2
+  override_memory_mb: 4096
+  suppress_override_warnings: true
+  # _TaskAwareTrialConfigDict injects the per-task /data bind mount.
+  kwargs:
+    # Persist SIF images across Pod restarts.
+    singularity_image_cache_dir: /workspace/sif_cache
+
+verifier:
+  disable: false

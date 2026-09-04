@@ -1,0 +1,60 @@
+# SFT config for Qwen3-1.7B / Qwen3-4B / Qwen3-8B / Llama-3.2-3B-Instruct.
+# Override the model per run, e.g.:
+#   CONFIG_PATH=config/sft.yaml bash scripts/sft/train_sft.sh \
+#     model.path=Qwen/Qwen3-4B run_name=sft_single_qwen3_4b
+strategy: local
+
+model:
+  path: Qwen/Qwen3-1.7B # Qwen3-1.7B / Qwen3-4B / Qwen3-8B / Llama-3.2-3B-Instruct
+  lora:
+    rank: 16
+    alpha: 32
+    target_modules: all-linear
+    dropout: 0.05
+
+dataset_name: data/run_output/experiments-sft/data/dataset_single_task_split
+dataset_split: "train"
+messages_key: messages
+
+num_steps: 7500
+batch_size: 4
+micro_train_batch_size_per_gpu: 4
+max_length: 16384
+seed: 42
+
+optimizer_config:
+  lr: 1.0e-4
+  weight_decay: 0.01
+  num_warmup_steps: 50
+
+# FA2 + sample packing default on (real flash-attn 2.8.3 + sm_80+ GPU required).
+# Set either to false to fall back to eager attention (slower, more memory).
+flash_attn: true
+use_sample_packing: true
+gradient_checkpointing: true
+gradient_checkpointing_use_reentrant: false
+
+run_name: sft_single_qwen3_1p7b
+project_name: data/run_output/experiments-sft
+ckpt_path: data/run_output/experiments-sft/runs/${run_name}
+ckpt_interval: 200
+max_ckpts_to_keep: 3
+logger: console
+
+placement:
+  num_nodes: 1
+  num_gpus_per_node: 1
+
+# Per-task keep N rows with smallest reward (loss-scaled). null disables.
+top_k_lowest_reward: null
+
+# Evaluation generation cap, independent of training max_length.
+eval_max_tokens: 10000
+
+# Used only when the pipeline manages vLLM for evaluation.
+vllm:
+  port: 8001
+  max_model_len: 24576         # prompt, 10k-token response, and headroom
+  gpu_memory_utilization: 0.6
+  dtype: bfloat16
+  enforce_eager: true          # skip CUDA graph capture; faster startup

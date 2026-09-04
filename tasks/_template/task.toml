@@ -1,0 +1,27 @@
+# Copy this file to tasks/<your_task>/task.toml and adjust as needed.
+
+version = "1.0"
+
+[metadata]
+name = "your_task_name"
+description = "One-line description"
+difficulty = "medium"              # easy | medium | hard
+domain = "financial"
+keywords = []
+
+[agent]
+timeout_sec = 600                  # max seconds the agent may run
+
+[verifier]
+timeout_sec = 600                  # max seconds for evaluation
+
+[environment]
+cpus = 2
+memory_mb = 4096
+allow_internet = true
+# Shared sandbox image, same across every curated + generated task.
+# Singularity (HPC / K8s) requires a registry image; Docker pulls it too
+# under the default flow. The image is task-agnostic — task data is
+# bind-mounted into /data at trial-launch by the orchestrator
+# (openfinai_harbor.runner.build_task_data_mount).
+docker_image = "nihao0630/openfinai-base:v1"

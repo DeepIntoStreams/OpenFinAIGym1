@@ -1,0 +1,20 @@
+# Verifier-RPC overlay for custom Harbor orchestration.
+# `openfinai_harbor.run_trial` injects these variables directly and does
+# not use this file. For other runners, add it as a compose overlay after
+# starting `python -m openfinai_harbor.verifier --task-dir <task>`.
+#
+# The overlay connects the agent to the host verifier and persists
+# reward.json. It does not start the verifier or expose host-side eval data.
+# Required host variables: VERIFIER_URL, VERIFIER_TOKEN, AGENT_ID, and
+# HOST_REWARD_DIR. `host.docker.internal` uses Docker's Linux host gateway.
+services:
+  agent:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      VERIFIER_URL: "${VERIFIER_URL:?set VERIFIER_URL=http://host.docker.internal:<port>}"
+      VERIFIER_TOKEN: "${VERIFIER_TOKEN:?set VERIFIER_TOKEN=<bearer>}"
+      AGENT_ID: "${AGENT_ID:-simple-llm}"
+      HARBOR_REWARD_OUTPUT: "/host_reward/reward.json"
+    volumes:
+      - "${HOST_REWARD_DIR:?set HOST_REWARD_DIR=<host path>}:/host_reward"

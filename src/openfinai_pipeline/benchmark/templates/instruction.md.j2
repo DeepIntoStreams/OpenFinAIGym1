@@ -1,0 +1,135 @@
+# {{ title }}
+
+## Context
+
+{{ context_prose }}
+
+## Objective
+
+{{ objective_prose }}
+
+## Data layout (`/data/`)
+
+The task bundle is mounted at `/data/`. Only the files listed below are
+present — the original raw payloads from the upstream dataset are NOT
+shipped (the install slicer materialises a single pre-split HDF5 bundle).
+
+| File | Description |
+|------|-------------|
+| `/data/dataset.h5` | Pre-sliced HDF5. Contains `train` (features + ground_truth), `test` (features only — `ground_truth` is held out), and root attributes `shape`, `split_policy`, `split_metadata_json`. Reference-shape unconditional generative tasks instead carry a single `reference` array. |
+| `/data/load.py` | Trivial runtime loader; reads `dataset.h5` and reconstructs the dict the framework expects. The framework calls it for you via `task.load_data()`; you should not edit it. |
+| `/data/task.py` | Defines `{{ class_name }}` (described in **Agent task interface** below). Import this class to interact with the task. |
+| `/data/evaluator.py` | Assembled evaluator class `{{ class_name }}Evaluator`. The verifier runs it on submission; you do not call it directly. |
+| `/data/task_rewards.py` | Reward classes the evaluator imports (curated bank subset plus any Phase-3-generated metrics for this task). |
+| `/data/manifest.json` | Per-task descriptor: resolved reward names, expected output filenames, split policy, etc. |
+| `/data/harbor_submit.py` | Submission helper (see **Submitting predictions**). |
+{% if has_held_out_test_gt %}
+The held-out test ground truth lives at `/eval-data/test_ground_truth.h5`.
+That mount is **verifier-only** — your container has no read access to
+it. The framework's `task.get_ground_truth()` method enforces this with
+a `PermissionError` for auto-generated tasks.
+{% else %}
+This task uses a single shared reference distribution
+(`split_policy="no_split"`); the agent and verifier read identical data
+via the framework's reference accessors, and there is no held-out test
+target. Distributional metrics like FID/KID compare your generated
+samples against this reference.
+{% endif %}
+{% if split_policy %}
+
+**Split policy:** `{{ split_policy }}`
+{% endif %}
+
+### Schema
+
+{{ schema_description }}
+
+## Agent task interface
+
+Import the task class and call its accessors directly:
+
+```python
+from task import {{ class_name }}
+task = {{ class_name }}()
+task.load_data()  # populates self._data from /data/dataset.h5
+```
+
+{% if interaction_model == "forecasting" %}This is a **forecasting** task. The accessors below come from
+`ForecastingTask` (the framework base class):
+
+- `task.get_features()` — held-out **test** features. Your `predictions` array MUST be aligned 1:1 with the rows returned here.
+- `task.get_train_features()` — training features. Use these to fit your model.
+- `task.get_train_ground_truth()` — training labels. Use these as fitting targets.
+- `task.predict_and_evaluate(predictions, split="train")` — score your predictions against the **train** ground truth in-process. Useful for self-evaluation; `split="test"` raises `PermissionError`.
+- `task.get_ground_truth()` — **raises `PermissionError`** by design; never call this from your script.
+- `self._data` shape: `{"train": {"features": ndarray, "ground_truth": ndarray}, "test": {"features": ndarray, "ground_truth": None}, "split_policy": ..., "split_metadata": ...}`.
+{% elif interaction_model == "generative" %}This is a **generative** task. The accessors below come from
+`GenerativeTask` (the framework base class):
+
+- `task.get_train_features()` — training conditioning inputs (or full reference for the unconditional case).
+- `task.get_train_reference_data()` — training real samples; fit your generator against these.
+- `task.get_conditioning_data()` — optional kwargs for the generation step.
+- `task.generate_and_evaluate(samples, split="train")` — score generated samples against the **train** reference; `split="test"` raises `PermissionError`.
+- `task.get_reference_data()` — **raises `PermissionError`** for conditional generative tasks; the held-out reference is verifier-only. Unconditional (`split_policy="no_split"`) tasks override this to expose the full reference.
+- `self._data` shape: B-shape (`train`/`test` bundles) for conditional, or `{"reference": ndarray, "split_policy": "no_split", ...}` for unconditional.
+{% endif %}
+
+## Evaluation
+
+The verifier runs the bundled evaluator (`/data/evaluator.py`) against
+{% if has_held_out_test_gt %}the held-out `/eval-data/test_ground_truth.h5`{% else %}the shared reference distribution{% endif %}
+and writes the resulting reward dict. **You do not call the evaluator
+directly.** For agent-side self-evaluation, call
+`task.predict_and_evaluate(predictions, split="train")` — it scores
+against your training labels using the same reward bank.
+
+### Resolved metrics for this task
+
+The metrics below are exactly what the evaluator will compute. Any
+metric the paper mentioned but that did not resolve in the bundled
+reward bank is omitted here — it WILL NOT contribute to your score.
+{% for m in metric_specs %}
+
+**`{{ m.name }}`** ({% if m.base_class %}{{ m.base_class }}{% else %}reward{% endif %})
+
+{% if m.prediction_contract %}{{ m.prediction_contract }}{% elif m.docstring %}{{ m.docstring }}{% else %}(See `/data/task_rewards.py` for the implementation; this metric did not have a curated semantic entry at codegen time.){% endif %}
+{% if m.init_signature %}
+- `__init__{{ m.init_signature }}`
+{% endif %}
+{% if m.forward_signature %}- `forward{{ m.forward_signature }}` (or `compute_aggregate` for trading metrics)
+{% endif %}
+{% endfor %}
+
+The aggregator emits an additional `reward` key (the weighted sum of
+the per-metric scores; default weight 1.0 each).
+
+## Output
+
+Write your predictions to ONE of the canonical output files:
+{% for f in expected_outputs %}
+- `{{ f }}`{% endfor %}
+
+Format:
+
+- One prediction per evaluation sample.
+- Order MUST match `task.get_features()` exactly. Do not shuffle, drop, or duplicate rows.
+- For `.npy`: write a 1-D float array of length `len(task.get_features())` unless a metric explicitly requires a different shape (e.g. `CRPSLoss` needs `(N, S)` samples passed as a separate ctx kwarg, not via `predictions.npy`).
+- For `.csv`: one prediction per row, no header.
+
+## Submitting predictions
+
+If the environment variable `VERIFIER_URL` is set, submit through the
+host verifier RPC:
+
+```python
+from harbor_submit import submit_and_persist
+submit_and_persist(predictions)
+```
+
+The helper reads `VERIFIER_URL`, `VERIFIER_TOKEN`, and `AGENT_ID` from
+the environment, POSTs the predictions, and writes the reward to the
+path indicated by `HARBOR_REWARD_OUTPUT`.
+
+When `VERIFIER_URL` is not set, the file-IO fallback is used: write
+`{{ default_output }}` to your working directory and the runner will
+score locally.

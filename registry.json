@@ -1,0 +1,201 @@
+[
+    {
+        "name": "openfinai",
+        "version": "1.0",
+        "description": "OpenFinGym \u2014 financial agent evaluation benchmark",
+        "tasks": [
+            {
+                "name": "1_commodity_logreturn_forecasting",
+                "path": "tasks/1_commodity_logreturn_forecasting"
+            },
+            {
+                "name": "1_commodity_variant1_logreturn_forecasting",
+                "path": "tasks/1_commodity_variant1_logreturn_forecasting"
+            },
+            {
+                "name": "1_commodity_variant2_logreturn_forecasting",
+                "path": "tasks/1_commodity_variant2_logreturn_forecasting"
+            },
+            {
+                "name": "1_commodity_variant3_logreturn_forecasting",
+                "path": "tasks/1_commodity_variant3_logreturn_forecasting"
+            },
+            {
+                "name": "1_commodity_variant4_logreturn_forecasting",
+                "path": "tasks/1_commodity_variant4_logreturn_forecasting"
+            },
+            {
+                "name": "1_commodity_variant5_logreturn_forecasting",
+                "path": "tasks/1_commodity_variant5_logreturn_forecasting"
+            },
+            {
+                "name": "1_commodity_variant6_logreturn_forecasting",
+                "path": "tasks/1_commodity_variant6_logreturn_forecasting"
+            },
+            {
+                "name": "1_commodity_variant7_logreturn_forecasting",
+                "path": "tasks/1_commodity_variant7_logreturn_forecasting"
+            },
+            {
+                "name": "1_crypto_forecasting",
+                "path": "tasks/1_crypto_forecasting"
+            },
+            {
+                "name": "1_crypto_logreturn_forecasting",
+                "path": "tasks/1_crypto_logreturn_forecasting"
+            },
+            {
+                "name": "1_crypto_variant1_logreturn_forecasting",
+                "path": "tasks/1_crypto_variant1_logreturn_forecasting"
+            },
+            {
+                "name": "1_crypto_variant2_logreturn_forecasting",
+                "path": "tasks/1_crypto_variant2_logreturn_forecasting"
+            },
+            {
+                "name": "1_crypto_variant3_logreturn_forecasting",
+                "path": "tasks/1_crypto_variant3_logreturn_forecasting"
+            },
+            {
+                "name": "1_crypto_variant4_logreturn_forecasting",
+                "path": "tasks/1_crypto_variant4_logreturn_forecasting"
+            },
+            {
+                "name": "1_crypto_variant5_logreturn_forecasting",
+                "path": "tasks/1_crypto_variant5_logreturn_forecasting"
+            },
+            {
+                "name": "1_crypto_variant6_logreturn_forecasting",
+                "path": "tasks/1_crypto_variant6_logreturn_forecasting"
+            },
+            {
+                "name": "1_crypto_variant7_logreturn_forecasting",
+                "path": "tasks/1_crypto_variant7_logreturn_forecasting"
+            },
+            {
+                "name": "1_equity_excess_return_forecasting",
+                "path": "tasks/1_equity_excess_return_forecasting"
+            },
+            {
+                "name": "1_equity_logreturn_forecasting",
+                "path": "tasks/1_equity_logreturn_forecasting"
+            },
+            {
+                "name": "1_equity_variant1_logreturn_forecasting",
+                "path": "tasks/1_equity_variant1_logreturn_forecasting"
+            },
+            {
+                "name": "1_equity_variant2_logreturn_forecasting",
+                "path": "tasks/1_equity_variant2_logreturn_forecasting"
+            },
+            {
+                "name": "1_equity_variant3_logreturn_forecasting",
+                "path": "tasks/1_equity_variant3_logreturn_forecasting"
+            },
+            {
+                "name": "1_equity_variant4_logreturn_forecasting",
+                "path": "tasks/1_equity_variant4_logreturn_forecasting"
+            },
+            {
+                "name": "1_equity_variant5_logreturn_forecasting",
+                "path": "tasks/1_equity_variant5_logreturn_forecasting"
+            },
+            {
+                "name": "1_equity_variant6_logreturn_forecasting",
+                "path": "tasks/1_equity_variant6_logreturn_forecasting"
+            },
+            {
+                "name": "1_equity_variant7_logreturn_forecasting",
+                "path": "tasks/1_equity_variant7_logreturn_forecasting"
+            },
+            {
+                "name": "1_exchange_rate_forecasting",
+                "path": "tasks/1_exchange_rate_forecasting"
+            },
+            {
+                "name": "1_fx_variant1_logreturn_forecasting",
+                "path": "tasks/1_fx_variant1_logreturn_forecasting"
+            },
+            {
+                "name": "1_fx_variant2_logreturn_forecasting",
+                "path": "tasks/1_fx_variant2_logreturn_forecasting"
+            },
+            {
+                "name": "1_fx_variant3_forecasting",
+                "path": "tasks/1_fx_variant3_forecasting"
+            },
+            {
+                "name": "1_fx_variant4_logreturn_forecasting",
+                "path": "tasks/1_fx_variant4_logreturn_forecasting"
+            },
+            {
+                "name": "1_fx_variant5_logreturn_forecasting",
+                "path": "tasks/1_fx_variant5_logreturn_forecasting"
+            },
+            {
+                "name": "1_fx_variant6_forecasting",
+                "path": "tasks/1_fx_variant6_forecasting"
+            },
+            {
+                "name": "1_fx_variant7_logreturn_forecasting",
+                "path": "tasks/1_fx_variant7_logreturn_forecasting"
+            },
+            {
+                "name": "1_global_index_volatility_forecasting",
+                "path": "tasks/1_global_index_volatility_forecasting"
+            },
+            {
+                "name": "1_lob_forecasting",
+                "path": "tasks/1_lob_forecasting"
+            },
+            {
+                "name": "1_nifty50_multifactor_forecasting",
+                "path": "tasks/1_nifty50_multifactor_forecasting"
+            },
+            {
+                "name": "1_stock10_forecasting",
+                "path": "tasks/1_stock10_forecasting"
+            },
+            {
+                "name": "1_stock_OHLCV_forecasting",
+                "path": "tasks/1_stock_OHLCV_forecasting"
+            },
+            {
+                "name": "1_treasury_variant1_forecasting",
+                "path": "tasks/1_treasury_variant1_forecasting"
+            },
+            {
+                "name": "1_treasury_variant2_forecasting",
+                "path": "tasks/1_treasury_variant2_forecasting"
+            },
+            {
+                "name": "1_treasury_variant3_forecasting",
+                "path": "tasks/1_treasury_variant3_forecasting"
+            },
+            {
+                "name": "1_treasury_variant4_forecasting",
+                "path": "tasks/1_treasury_variant4_forecasting"
+            },
+            {
+                "name": "1_treasury_variant5_forecasting",
+                "path": "tasks/1_treasury_variant5_forecasting"
+            },
+            {
+                "name": "1_treasury_variant6_forecasting",
+                "path": "tasks/1_treasury_variant6_forecasting"
+            },
+            {
+                "name": "1_treasury_variant7_forecasting",
+                "path": "tasks/1_treasury_variant7_forecasting"
+            },
+            {
+                "name": "1_tsfm_forecasting",
+                "path": "tasks/1_tsfm_forecasting"
+            },
+            {
+                "name": "1_yieldcurve_forecasting",
+                "path": "tasks/1_yieldcurve_forecasting"
+            }
+        ]
+    }
+]

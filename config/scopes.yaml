@@ -1,0 +1,119 @@
+scopes:
+  - id: financial_return_forecasting
+    name: "Financial Return Forecasting"
+    description: >
+              Forecasting of financial returns, prices, or volatility from financial time-series
+              data using machine learning or deep learning models, including point prediction,
+              distributional forecasting, and directional prediction across asset classes such as
+              crypto, equities, FX, fixed income, commodities, ETFs, and indices.
+    enabled: true
+    categories: [q-fin.CP, q-fin.ST, q-fin.TR, q-fin.PM, cs.LG, stat.ML, cs.AI]
+    queries:
+      - '((stock OR equity OR cryptocurrency OR forex OR FX OR bond OR commodity OR ETF OR futures OR "stock index" OR "equity index" OR "interest rate*" OR "exchange rate*" OR "asset return*" OR "asset price*" OR "financial market*")
+        AND (return* OR price* OR volatility OR "realized volatility")
+        AND (forecast* OR predict* OR nowcast* OR "time series" OR "sequence model")
+        AND (LSTM OR Transformer OR "neural network" OR "deep learning" OR "state space" OR diffusion))'
+      - '((stock OR equity OR cryptocurrency OR forex OR FX OR bond OR commodity OR ETF OR futures OR "stock index" OR "equity index" OR "interest rate*" OR "exchange rate*" OR "asset return*" OR "asset price*" OR "financial market*")
+        AND (return* OR price* OR volatility)
+        AND (predict* OR forecast*)
+        AND (backtest OR "out-of-sample" OR "walk-forward" OR Sharpe OR Sortino OR drawdown OR PnL)
+        AND (machine learning OR deep learning OR statistical learning))'
+      - '("limit order book" OR "order flow" OR "high-frequency" OR "tick data")
+        AND (predict* OR forecast*)
+        AND (return* OR price* OR movement)
+        AND (deep learning OR Transformer OR CNN OR LSTM)'
+
+  - id: financial_time_series_generation
+    name: "Financial Time-Series Generation"
+    description: >
+              Generative, simulation-based, or synthetic-data methods for financial
+              time-series, including prices, returns, volatility, limit order books,
+              order flow, risk scenarios, and market regimes across equities, crypto,
+              FX, rates, commodities, ETFs, futures, and indices.
+    enabled: true
+    categories: [q-fin.CP, q-fin.ST, q-fin.RM, q-fin.PM, cs.LG, stat.ML, cs.AI]
+    queries:
+      - '(("generative model*" OR "deep generative" OR "generative adversarial" OR "variational autoencoder" OR GAN OR VAE OR diffusion OR "score-based" OR "normalizing flow*" OR "autoregressive generative")
+        AND ("financial time series" OR "asset return*" OR "asset price*" OR "stock return*" OR "stock price*" OR "equity return*" OR "equity price*" OR "FX return*" OR "exchange rate*" OR "interest rate*" OR "crypto* return*" OR "crypto* price*" OR "commodity return*" OR "commodity price*" OR "futures return*" OR "bond return*" OR "ETF return*" OR "index return*" OR "market return*" OR "return series" OR "price series" OR "implied volatility" OR "realized volatility" OR "volatility surface*")
+        AND (synthesi* OR "synthetic data" OR "synthetic time series" OR "synthetic return*" OR "synthetic price*" OR "synthetic scenario*" OR "scenario generation" OR generate OR generation OR "data augmentation"))'
+      - '(("scenario generation" OR "synthetic scenario*" OR "market scenario*" OR "stress scenario*" OR "adverse scenario*" OR "synthetic market data" OR "synthetic financial data" OR "counterfactual scenario*" OR "market regime*" OR "regime generation")
+        AND (portfolio OR "asset return*" OR "risk factor*" OR "market risk" OR "tail risk" OR "loss distribution" OR "P&L distribution" OR "joint return*" OR "factor return*" OR "credit spread*" OR "asset price*")
+        AND (GAN OR VAE OR diffusion OR copula OR "deep learning" OR "neural network" OR "generative model*" OR "Monte Carlo" OR "stochastic process"))'
+      - '(("limit order book" OR "order book" OR "order flow" OR "tick data" OR "market microstructure" OR "trade arrival*" OR "high-frequency trade*")
+        AND (generate OR generation OR synthesi* OR "synthetic data" OR "agent-based model*" OR "market simulator" OR simulator OR simulation OR "data augmentation")
+        AND (GAN OR diffusion OR Transformer OR "point process" OR Hawkes OR "neural network" OR "deep learning" OR "generative model*"))'
+
+  - id: alpha_trading
+    name: "Alpha Trading Agents"
+    description: >
+              "Machine learning-driven discovery of predictive signals (alpha factors),
+              portfolio construction, and trading strategies from financial data,
+              including signal generation, factor modeling, portfolio optimization,
+              and execution-aware strategy design."
+    enabled: true
+    categories: [q-fin.TR, q-fin.PM, q-fin.ST, q-fin.CP, cs.LG, cs.AI, stat.ML]
+    queries:
+      - '("alpha factor" OR "alpha factors" OR "alpha signal" OR "alpha discovery" OR "alpha mining" OR "formulaic alpha" OR "trading signal" OR "trading strategy" OR "investment strategy" OR "factor model" OR "factor investing" OR "factor portfolio" OR "risk premia" OR "signal generation" OR "algorithmic trading" OR "high-frequency trading" OR HFT OR "quantitative trading" OR "stock selection" OR "portfolio optim*" OR "portfolio construction" OR "asset allocation" OR "trading optim*" OR "market making")
+        AND (machine learning OR "deep learning" OR "neural network" OR Transformer OR "reinforcement learning" OR "predict-then-optimize" OR "end-to-end")'
+      - '(trading OR "algorithmic trading" OR execution OR "order execution" OR "market impact")
+        AND (machine learning OR deep learning OR "neural network" OR Transformer)
+        AND (backtest OR "out-of-sample" OR Sharpe OR turnover OR transaction cost* OR drawdown)'
+      - '("portfolio optimization" OR "asset allocation" OR "portfolio construction")
+        AND (machine learning OR deep learning OR "neural network" OR Transformer)
+        AND (return OR risk OR Sharpe OR drawdown)'
+
+  - id: fraud_detection
+    name: "Fraud Detection"
+    description: >
+              "Detection of anomalous or fraudulent behavior in financial systems using
+              machine learning or deep learning models, including transaction monitoring,
+              anti-money laundering (AML), and graph-based anomaly detection in financial networks."
+    enabled: true
+    categories: [cs.LG, cs.CR, cs.AI, stat.ML, q-fin.RM, q-fin.ST]
+    queries:
+      - '(fraud OR "fraud detection" OR AML OR "anti-money laundering" OR "money laundering" OR "suspicious transaction" OR "fraudulent transaction*" OR "financial anomaly" OR "transaction anomaly" OR "anomaly detection")
+        AND (transaction OR payment OR account OR ledger OR "credit card" OR "debit card" OR banking OR financial OR "financial network")
+        AND (machine learning OR deep learning OR "graph model" OR GNN OR "graph neural network" OR "temporal model")'
+      - '(fraud OR AML OR "anti-money laundering" OR "money laundering" OR "suspicious transaction" OR "fraudulent transaction*" OR "financial anomaly" OR "transaction anomaly" OR "anomaly detection")
+        AND (benchmark OR dataset OR "real-world" OR production OR deployment OR precision OR recall OR F1 OR AUROC OR "false positive")
+        AND (transaction OR payment OR account OR ledger OR "credit card" OR "debit card" OR banking OR financial OR "financial network")
+        AND (machine learning OR deep learning OR "graph model" OR GNN OR "graph neural network" OR "temporal model")'
+
+  - id: stress_testing
+    name: "Stress Testing and Risk Management"
+    description: >
+              "Evaluation of financial portfolios and risk models under extreme or
+              counterfactual scenarios using statistical, simulation-based, or machine learning approaches,
+              including scenario generation, tail risk modeling, and distributional stress analysis."
+    enabled: true
+    categories: [q-fin.RM, q-fin.CP, q-fin.PM, q-fin.ST, cs.LG, cs.AI, stat.ML]
+    queries:
+      - '(("value at risk" OR "conditional value at risk" OR CVaR OR "expected shortfall" OR "tail risk")
+        AND (forecast* OR predict* OR estim* OR backtest*)
+        AND (portfolio OR "asset return*" OR "market return*" OR "market risk" OR "systemic risk" OR "stock index*" OR "equity index*" OR "market index*" OR "market indices" OR "interest rate*" OR "credit spread*" OR "loss distribution" OR volatility OR "realized volatility")
+        AND (machine learning OR "deep learning" OR "neural network" OR "statistical model*" OR Bayesian OR "Monte Carlo" OR RNN OR LSTM OR Transformer OR "reinforcement learning"))'
+      - '(("stress test*" OR "stress scenario*" OR "adverse scenario*" OR "scenario design" OR "scenario generation")
+        AND (portfolio OR "financial institution*" OR "asset return*" OR "market risk" OR "systemic risk" OR "credit spread*" OR "loss distribution" OR "balance sheet" OR "bank capital" OR "regulatory capital")
+        AND (machine learning OR "deep learning" OR "neural network" OR generative OR diffusion OR GAN OR VAE OR copula OR "Monte Carlo" OR Bayesian OR "reinforcement learning"))'
+      - '(("regime shift*" OR "regime switching" OR "distribution shift*" OR "crisis period*" OR "extreme event*" OR "extreme value theory" OR "tail event*")
+        AND (portfolio OR "asset return*" OR "market risk" OR "tail risk" OR "value at risk" OR CVaR OR "expected shortfall" OR "credit spread*" OR "loss distribution")
+        AND (machine learning OR "deep learning" OR "neural network" OR robust* OR "statistical model*" OR "reinforcement learning"))'
+
+  - id: ai_assurance
+    name: "AI Assurance"
+    description: >
+              "Validation, governance, and reliability assessment of AI/ML systems in finance,
+              including model risk management, monitoring, uncertainty quantification,
+              explainability, fairness, and robustness under distribution shift."
+    enabled: true
+    categories: [cs.AI, cs.LG, cs.CR, stat.ML, q-fin.RM, q-fin.PM, q-fin.ST]
+    queries:
+      - '(("AI assurance" OR "trustworthy AI" OR "responsible AI" OR "model risk management" OR "model validation" OR "model audit*" OR "model governance" OR "AI governance" OR "AI audit*" OR "algorithmic audit*" OR "algorithmic governance")
+        AND ("credit scoring" OR "credit risk model*" OR "credit decision*" OR "loan approval" OR "loan decision*" OR "loan default" OR lending OR underwriting OR banking OR "financial services" OR "financial decision*" OR "investment decision*" OR "financial risk model*" OR "trading model*" OR "fraud detection model*" OR "default prediction" OR "probability of default")
+        AND ("machine learning" OR "deep learning" OR "neural network" OR "predictive model*" OR "classification model*" OR LLM OR "language model" OR XGBoost OR "ensemble model*"))'
+      - '(("model drift" OR "data drift" OR "concept drift" OR "distribution shift*" OR "out-of-distribution" OR "covariate shift" OR "post-deployment monitoring" OR "production monitoring" OR "model monitoring" OR "model recalibration" OR "uncertainty quantification" OR "predictive uncertainty" OR "calibration error" OR "well-calibrated" OR "conformal prediction")
+        AND ("credit scoring" OR "credit risk model*" OR "credit decision*" OR "loan approval" OR "loan default" OR lending OR underwriting OR banking OR "financial services" OR "financial decision*" OR "investment decision*" OR "financial risk model*" OR "trading model*" OR "fraud detection" OR "default prediction" OR "probability of default")
+        AND ("machine learning" OR "deep learning" OR "neural network" OR "predictive model*" OR "classification model*" OR LLM OR "language model"))'
+      - '(("algorithmic fairness" OR "model fairness" OR "disparate impact" OR "disparate treatment" OR "fairness audit*" OR explainab* OR interpretab* OR "counterfactual explanation*" OR "feature attribution" OR "Shapley value*" OR SHAP OR LIME)
+        AND ("credit scoring" OR "credit decision*" OR "credit risk model*" OR "loan approval" OR "loan decision*" OR "loan default" OR lending OR underwriting OR banking OR "financial services" OR "financial decision*" OR "investment decision*" OR "fraud detection" OR "default prediction" OR insurance OR "claim prediction")
+        AND ("machine learning" OR "deep learning" OR "neural network" OR "predictive model*" OR "classification model*"))'

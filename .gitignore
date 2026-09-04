@@ -1,0 +1,186 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
+__pypackages__/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# ruff
+.ruff_cache/
+
+# LSP config files
+pyrightconfig.json
+
+*.ipynb
+
+# Auto-pipeline staging outputs (contents ignored, .gitkeep tracked)
+/data/pipeline_output/papers/*
+!/data/pipeline_output/papers/.gitkeep
+/data/pipeline_output/datasets/*
+!/data/pipeline_output/datasets/.gitkeep
+/data/pipeline_output/.staging
+/data/pipeline_output/.cache
+/data/pipeline_output/rewards/*
+!/data/pipeline_output/rewards/.gitkeep
+/data/pipeline_output/logs/*
+!/data/pipeline_output/logs/.gitkeep
+
+# Runtime + training artifacts (contents ignored, .gitkeep tracked for runtime dirs)
+/data/run_output/verifier/*
+!/data/run_output/verifier/.gitkeep
+/data/run_output/examples/*
+!/data/run_output/examples/.gitkeep
+/data/run_output/realtime_diagnostics/*
+!/data/run_output/realtime_diagnostics/.gitkeep
+/data/run_output/jobs/*
+!/data/run_output/jobs/.gitkeep
+/data/run_output/sft_dataset/
+/data/run_output/checkpoints/
+
+# tasks/: track only offline_*, realtime_*, _template, the empty generated/ marker,
+# and the curated task-paper matrix doc.
+/tasks/*
+!/tasks/offline_*/
+!/tasks/realtime_*/
+!/tasks/_template/
+!/tasks/generated/
+!/tasks/curated_task_paper_matrix.md
+/tasks/generated/*
+!/tasks/generated/.gitkeep
+
+# Legacy paths (may still exist during transition)
+/data/knowledge_base/papers
+/data/knowledge_base/datasets
+/data/knowledge_base/rewards/generated
+/data/knowledge_base/.staging
+/data/results
+
+# Caches
+/data/.cache
+/.claude
+
+CLAUDE.md
+
+# Large binary files, we should use LFS if storing with the repo
+*.docx
+*.pdf
+*.parquet
+*.csv
+*.pkl
+*.pickle
+*.zip
+*.log
+/tmp
+*.h5
+*.hdf5
+*.arrow
+/jobs
+
+# SFT / RL local scratch dirs (don't commit experiment artifacts)
+/experiments/
+/experiments-sft/
+/checkpoints/
+/data/raw_sources/
+/data/sft_dataset/
+/data/run_output
+/logs/

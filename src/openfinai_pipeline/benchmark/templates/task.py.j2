@@ -1,0 +1,187 @@
+"""
+{{ title }}
+
+Auto-generated task for OpenFinGym.
+Source paper(s): {{ source_papers | join(', ') }}
+
+{{ description }}
+"""
+
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
+import pandas as pd
+
+{% if interaction_model == "forecasting" %}
+from openfinai_pipeline.benchmark.contracts import ForecastingTask, TaskMetadata
+{% elif interaction_model == "generative" %}
+from openfinai_pipeline.benchmark.contracts import GenerativeTask, TaskMetadata
+{% elif interaction_model == "trading" %}
+from openfinai_pipeline.benchmark.contracts import TaskMetadata, TradingTask
+{% else %}
+from openfinai_pipeline.benchmark.contracts import BaseTask, TaskMetadata
+{% endif %}
+
+
+{% if interaction_model == "forecasting" %}
+class {{ class_name }}(ForecastingTask):
+{% elif interaction_model == "generative" %}
+class {{ class_name }}(GenerativeTask):
+{% elif interaction_model == "trading" %}
+class {{ class_name }}(TradingTask):
+{% else %}
+class {{ class_name }}(BaseTask):
+{% endif %}
+    """
+    {{ description }}
+
+    Data requirements: {{ data_requirements | join('; ') }}
+    """
+
+    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+        super().__init__(config)
+        self._data = None
+        self._current_step: int = 0
+        self._done: bool = False
+        self._returns: List[float] = []
+        self._trades: List[Dict[str, Any]] = []
+{% if interaction_model == "forecasting" or interaction_model == "generative" %}
+        try:
+            from evaluator import {{ class_name }}Evaluator  # type: ignore
+            self._evaluator = {{ class_name }}Evaluator()
+        except Exception:
+            self._evaluator = None
+{% endif %}
+
+    # Identity
+
+    def metadata(self) -> TaskMetadata:
+        return TaskMetadata(
+            task_id="{{ task_id }}",
+            title="{{ title }}",
+            description="{{ description }}",
+{% if interaction_model == "forecasting" %}
+            interaction_model="forecasting",
+{% elif interaction_model == "generative" %}
+            interaction_model="generative",
+{% elif interaction_model == "trading" %}
+            interaction_model="trading",
+{% endif %}
+            source_papers={{ source_papers }},
+            tags={{ tags }},
+            data_requirements={{ data_requirements }},
+            difficulty="{{ difficulty }}",
+            version="{{ version }}",
+        )
+
+    # Data
+    # BaseTask loads and caches the bundled loader output. Training targets are
+    # agent-readable; held-out targets remain verifier-only. Unconditional
+    # generative references have no held-out distinction.
+    # {{ load_data_docstring }}
+    # Do not override load_data; consume self._data below.
+
+    # Spaces
+
+    def get_observation_space(self) -> Dict[str, Any]:
+        {{ observation_space_impl }}
+
+    def get_action_space(self) -> Dict[str, Any]:
+        {{ action_space_impl }}
+
+{% if interaction_model == "forecasting" %}
+    # Forecasting
+    # Training accessors are inherited. get_ground_truth remains inherited so
+    # held-out targets cannot cross the verifier boundary.
+
+    def get_features(self) -> Any:
+        """Return the **test** features the agent predicts on.
+
+        {{ get_features_docstring }}
+        """
+        self.load_data()
+        {{ get_features_impl }}
+
+    # Episode methods inherit ForecastingTask behavior.
+{% elif interaction_model == "generative" %}
+    # Generative
+    # Inherited training accessors support conditional and unconditional data.
+    # Conditional test references stay verifier-only.
+
+    def get_reference_data(self) -> Any:
+        """Return the reference samples (full for unconditional; raises for conditional held-out).
+
+        {{ get_reference_docstring }}
+        """
+        self.load_data()
+        {{ get_reference_impl }}
+
+    def get_conditioning_data(self) -> Any:
+        """Return optional conditioning inputs for sample generation.
+
+        {{ get_conditioning_docstring }}
+        """
+        self.load_data()
+        {{ get_conditioning_impl }}
+
+    # Episode methods inherit GenerativeTask behavior.
+{% elif interaction_model == "trading" %}
+    # Trading hooks
+
+    def _get_market_observation(self) -> Any:
+        {{ market_observation_impl }}
+
+    def _execute_trade(self, action: Any) -> Tuple[float, Dict[str, Any]]:
+        {{ execute_trade_impl }}
+{% else %}
+    # Episode logic
+
+    def reset(self) -> Any:
+        self._current_step = 0
+        self._done = False
+        self._returns = []
+        self._trades = []
+        if self._data is None:
+            self.load_data()
+        {{ reset_impl }}
+
+    def step(self, action: Any) -> Tuple[Any, float, bool, Dict]:
+        if self._done:
+            raise RuntimeError("step() called on a finished episode. Call reset() first.")
+        {{ step_impl }}
+
+    # Evaluation
+
+    @staticmethod
+    def _calculate_rewards(returns: List[float], trades: List[Dict]) -> Dict[str, float]:
+        rewards: Dict[str, float] = {"total_return": float(np.sum(returns)), "num_trades": len(trades)}
+        if returns:
+            arr = np.array(returns)
+            mean_r, std_r = float(np.mean(arr)), float(np.std(arr))
+            rewards["mean_return"] = mean_r
+            rewards["std_return"] = std_r
+            rewards["sharpe_ratio"] = mean_r / std_r if std_r != 0 else 0.0
+            excess = arr - 0.0
+            downside = excess[excess < 0]
+            ds_std = float(np.std(downside)) if len(downside) > 0 else 0.0
+            rewards["sortino_ratio"] = mean_r / ds_std if ds_std != 0 else (float("inf") if mean_r > 0 else 0.0)
+            cumulative = np.cumprod(1 + arr)
+            running_max = np.maximum.accumulate(cumulative)
+            rewards["max_drawdown"] = float(np.min((cumulative - running_max) / running_max))
+        if trades:
+            rewards["win_rate"] = len([t for t in trades if t.get("profit", 0) > 0]) / len(trades)
+        return rewards
+
+    def evaluate(self, agent_actions: List[Any], **kwargs: Any) -> Dict[str, float]:
+        """Evaluate agent performance over a full episode."""
+        self.reset()
+        for action in agent_actions:
+            if self._done:
+                break
+            _, reward, done, _ = self.step(action)
+            self._returns.append(reward)
+
+        rewards = self._calculate_rewards(self._returns, self._trades)
+        {{ extra_rewards_impl }}
+        return rewards
+{% endif %}

@@ -1,0 +1,124 @@
+# Phase 1c trading-paper triage descriptor for offline_stock_trading.
+#
+# Read by openfinai_pipeline.papers._curated_catalog at the start of every
+# triage-trading-papers run. Lifted out of task.toml so the runtime config
+# (sibling task.toml) stays lean. All triage-only data — structural fields,
+# per-config-schema-field metadata, and LLM-prompt prose — lives here in
+# one place. Editing any field invalidates the catalog SHA256 stamped onto
+# every TradingTriageRecord; that drift is visible to downstream consumers.
+#
+# task_id and class_name are pulled from the sibling task.toml's
+# [metadata].name and [curated].class_name respectively (no duplication).
+
+schema_version  = "1"
+triage_eligible = true
+asset_classes   = ["equity"]
+exchanges       = ["alpaca"]
+mode            = "offline"
+action_space_description = """\
+Transactional orders: a dict with keys 'action' ('buy'|'sell'|'hold'|'cancel'), \
+'symbol', 'quantity' (>0, fractional allowed), 'order_type' \
+('market'|'limit'|'stop'|'stop_limit', default 'market'), 'limit_price', \
+'stop_price', 'tif' ('ioc'|'gtc', default 'gtc'), and 'order_id' for cancels. \
+Use `{'orders': [<intent>, ...]}` to submit / cancel multiple orders in one step. \
+Shorting is allowed (sell beyond your holdings) and orders are capped by buying \
+power (strict 1x). Limit/stop orders queue across bars (GTC) or expire same-bar \
+(IOC); fills are pessimistic at limit_price / stop_price."""
+task_description = """\
+Sequential trading on historical Alpaca OHLCV bars for US equities. The agent \
+issues per-bar trading actions across a fixed ticker universe. US equity \
+markets are open ~6.5h/day on weekdays — sub-hourly intervals (1m, 5m, 15m) only \
+have data during market hours, while 1h/1d/1w aggregate sensibly. Score is PnL \
+(mark-to-market); diagnostics include Sharpe ratio, max drawdown, win rate."""
+action_format_description = """\
+The episode is an interactive session: reset, then submit one action per bar from \
+the observation you are given (no look-ahead). A transactional intent dict (e.g. \
+`{\"action\": \"buy\", \"symbol\": \"SPY\", \"quantity\": 10, \"order_type\": \
+\"limit\", \"limit_price\": 450.0, \"tif\": \"gtc\"}`), or `{\"action\": \"hold\"}` \
+to do nothing. Size quantity to your buying power (e.g. ~`0.95 * cash / price`). \
+Pending GTC orders carry across bars and are auto-expired at episode end; cancel \
+via `{\"action\": \"cancel\", \"order_id\": <id>}`."""
+evaluation_description = """\
+Headline metric: PnL (mean per-bar mark-to-market). Diagnostics: sharpe_ratio, \
+max_drawdown, win_rate, total_return."""
+
+[config_schema.symbols]
+type     = "list[str]"
+required = true
+examples = ["SPY", "QQQ", "IWM", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA"]
+notes    = "US equity tickers (Alpaca supports common stocks + major ETFs). No exchange suffix."
+
+[config_schema.target_symbols]
+type     = "list[str]"
+required = true
+notes    = "Subset of `symbols` on which PnL/Sharpe/drawdown/win-rate are scored. Trades on non-target symbols are still allowed (hedging) but excluded from metrics."
+
+[config_schema.context_resolutions]
+type             = "list[{interval, bars}]"
+required         = true
+interval_options = ["1m", "5m", "15m", "30m", "1h", "1d", "1w"]
+notes            = "Multi-timeframe observation; each entry adds an obs key `recent_bars_by_interval[interval]`. The finest interval must match `data_resolution`. Sub-hourly intervals only carry data during market hours."
+
+[config_schema.data_resolution]
+type     = "str"
+required = true
+notes    = "Primary buffer cadence; must equal the finest interval in `context_resolutions`. Drives per-step PnL and verifier replay. Controls data buffering only — agents step at any frequency they wish."
+
+[config_schema.start]
+type     = "date"
+required = true
+format   = "YYYY-MM-DD"
+notes    = "Backtest start (inclusive). Date-only defaults to 00:00 UTC, which is post-market in EST — fine at 1h+ but for minute-level pass full ISO with a market-open timestamp."
+
+[config_schema.end]
+type     = "date"
+required = true
+format   = "YYYY-MM-DD"
+notes    = "Backtest end (exclusive)."
+
+[config_schema.initial_cash]
+type    = "float"
+default = 100000.0
+notes   = "Starting cash in USD. Orders are buying-power-capped (strict 1x), so set this relative to the traded price."
+
+[config_schema.episode_length]
+type     = "int"
+required = true
+notes    = "Number of `data_resolution` bars per episode."
+
+[config_schema.slippage_pct]
+type    = "float"
+default = 0.0
+notes   = "Per-trade slippage as fraction of notional (e.g. 0.0005 = 5 bps)."
+
+[config_schema.transaction_cost_pct]
+type    = "float"
+default = 0.0
+notes   = "Per-trade commission as fraction of notional. US equity commissions are typically near-zero with retail brokers; non-zero values mainly model market impact."
+
+[config_schema.order_types]
+type    = "list[str]"
+default = ["market", "limit", "stop", "stop_limit"]
+notes   = "Supported order types. Always all four."
+
+[config_schema.time_in_force]
+type    = "list[str]"
+default = ["ioc", "gtc"]
+notes   = "Supported time-in-force values for limit/stop/stop_limit orders. `gtc` (default) carries across bars until filled, cancelled, or auto-expired at episode end. `ioc` fills against the same bar's OHLC or expires immediately."
+
+[catalog_defaults]
+symbols              = ["SPY", "QQQ", "IWM"]
+target_symbols       = ["SPY", "QQQ"]
+context_resolutions  = [
+    { interval = "1h", bars = 20 },
+    { interval = "1d", bars = 14 },
+    { interval = "1w", bars = 8  },
+]
+data_resolution      = "1h"
+start                = "2020-01-01"
+end                  = "2023-01-01"
+initial_cash         = 100000.0
+episode_length       = 200
+start_offset         = 0
+slippage_pct         = 0.0
+transaction_cost_pct = 0.0

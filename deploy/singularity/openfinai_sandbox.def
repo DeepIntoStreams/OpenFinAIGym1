@@ -1,0 +1,40 @@
+Bootstrap: docker
+From: python:3.12-slim
+
+# Minimal native SIF sandbox for OpenFinGym RL trajectories.
+# Build on the same CPU architecture as the compute nodes:
+#   apptainer build /path/to/sif_cache/openfinai-sandbox.sif deploy/singularity/openfinai_sandbox.def
+#
+# Use this on architectures unsupported by the published x86_64 image. Select
+# it with config/harbor_trial_rl_singularity.yaml and OPENFINAI_SANDBOX_SIF.
+# Heavy ML dependencies come from the host conda environment mounted at
+# /opt/conda; Harbor's server dependencies are baked in for offline startup.
+
+%post
+    set -e
+
+    # Apptainer applies --pwd before bootstrap; both Harbor workdirs must exist.
+    mkdir -p /workspace /app
+
+    # Harbor expects Python at /usr/bin/python3.
+    ln -sf /usr/local/bin/python3 /usr/bin/python3
+
+    # Pre-create Harbor's server environment for offline trials.
+    python3 -m venv /opt/harbor-server
+    /opt/harbor-server/bin/pip install --no-cache-dir uvicorn fastapi
+
+    # SingleShotLLMAgent does not use these tools; stubs prevent online installs.
+    for b in tmux asciinema; do printf '#!/bin/sh\nexit 0\n' > "/usr/local/bin/$b"; chmod +x "/usr/local/bin/$b"; done
+
+    # Bound bootstrap network waits on air-gapped nodes.
+    mkdir -p /etc/apt/apt.conf.d
+    printf 'Acquire::http::Timeout "5";\nAcquire::https::Timeout "5";\nAcquire::Retries "0";\n' > /etc/apt/apt.conf.d/99-harbor-timeouts
+
+%environment
+    # Prefer the bind-mounted host environment and its native CUDA libraries.
+    export PATH=/opt/conda/bin:$PATH
+    export LD_LIBRARY_PATH=/opt/conda/lib:${LD_LIBRARY_PATH:-}
+
+%labels
+    Maintainer OpenFinGym contributors
+    BaseImage python:3.12-slim

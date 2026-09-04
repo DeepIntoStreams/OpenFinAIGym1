@@ -1,0 +1,110 @@
+[project]
+name = "openfingym"
+version = "0.1.0"
+description = "OpenFinGym: a verifiable multi-task gym environment for evaluating quant agents"
+authors = [
+    {name = "OpenFinGym contributors"}
+]
+keywords = [
+    "financial-agents", "benchmark", "harbor", "evaluation",
+    "time-series", "crypto", "risk-metrics", "llm",
+]
+readme = "README.md"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+    "pydantic (>=2.12.5,<3.0.0)",
+    "omegaconf (>=2.3.0,<3.0.0)",
+    "python-dotenv (>=1.0.1,<2.0.0)",
+    "requests (>=2.33.1,<3.0.0)",
+    "feedparser (>=6.0.12,<7.0.0)",
+    "boto3 (>=1.42.85,<2.0.0)",
+    "anthropic (>=0.92.0,<0.93.0)",
+    "openai (>=2.30.0,<3.0.0)",
+    "rich (>=14.3.3,<15.0.0)",
+    "jinja2 (>=3.1.6,<4.0.0)",
+    "kaggle (>=2.0.0,<3.0.0)",
+    "huggingface_hub (>=0.26.0,<1.0.0)",
+    "fredapi (>=0.5.2,<1.0.0)",
+    "ccxt",
+    "akshare",
+    "tushare",
+    "baostock",
+    "yahooquery",
+    "pandas-datareader",
+    "wbdata",
+    "numpy (>=2.4.4,<3.0.0)",
+    "pandas (<4.0)",
+    "pyarrow (<25.0)",
+    "h5py (<4.0)",
+    "harbor (>=0.7.0,<0.8.0)",
+    "litellm (<2.0)",
+    "torch (==2.8.0)",
+    "torchvision (==0.23.0)",
+    "torchaudio (==2.8.0)",
+    "triton (==3.4.0)",
+    "skyrl (==0.1.0)",
+    "skyrl-gym (==0.2.0)",
+    "peft (==0.19.1)",
+    "accelerate (>=1.0.0,<2.0.0)",
+    "ray (>=2.51.0,<3.0.0)",
+    "jaxtyping (>=0.3.0,<1.0.0)",
+    "tensordict (>=0.12.0,<1.0.0)",
+    "torchdata",
+    "datasets (>=4.0.0,<5.0.0)",
+    "transformers (>=4.55.2,<5.0.0)",
+    "scipy (>=1.17.1,<2.0.0)",
+    "ml-collections (>=1.1.0,<2.0.0)",
+    "scikit-learn (>=1.8.0,<2.0.0)",
+    "playwright (>=1.49,<2.0)",
+    "sentence-transformers (>=3.0,<4.0)",
+    "yfinance (>=1.2.2,<2.0.0)",
+    "gdown (>=5.2.0,<6.0.0)",
+    "langchain-core (>=1.2.31,<2.0.0)",
+    "langchain-openai (>=1.1.14,<2.0.0)",
+    "langchain-openrouter (>=0.2.1,<0.3.0)",
+    "langchain-aws (>=1.4.4,<2.0.0)",
+    "langchain-ollama (>=1.1.0,<2.0.0)",
+    "langchain-anthropic (>=1.4.0,<2.0.0)",
+    "langchain (>=1.2.15,<2.0.0)",
+    "fastapi (<1.0.0)",
+    "uvicorn (<1.0.0)",
+    "filelock (<4.0.0)",
+]
+
+[project.optional-dependencies]
+rl = [
+    "vllm==0.10.2",
+    "xformers==0.0.32.post1",
+]
+
+[tool.poetry]
+packages = [
+    { include = "openfinai_pipeline", from = "src"},
+    { include = "openfinai_harbor", from = "src"},
+    { include = "openfinai_skyrl", from = "src"},
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^9.0.3"
+pytest-cov = "^7.1.0"
+ruff = "^0.15.9"
+pre-commit = "^4.5.1"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["tasks/generated", "data/pipeline_output"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B"]
+ignore = ["E203"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]

@@ -1,0 +1,55 @@
+[metadata]
+family = "realtime_polymarket"
+name   = "realtime_polymarket"
+
+[curated]
+class_name = "RealtimePolymarket"
+
+[curated.default_config]
+db_path         = "results/polymarket_predictions.db"
+headline_metric = "brier_score"
+
+[curated.default_config.discovery]
+# Resolution window (hours from now)
+resolution_window_hours_min = 1
+resolution_window_hours_max = 6
+
+# Drop already-resolved-by-consensus markets (>99% certainty either way).
+min_yes_price = 0.01
+max_yes_price = 0.99
+
+# Liquidity floor — catches "stuck-near-50%-because-nobody-trades" markets
+# that contribute pure noise to scoring.
+min_24h_volume_usd      = 1000.0
+min_orderbook_depth_usd = 100.0
+
+# Cap context-window cost for the LLM agent. 20 markets × ~500 chars
+# of question+description = ~10k chars context, well within an 8k-token
+# completion budget after agent prompt overhead.
+max_markets_per_trial = 20
+
+# Empty list = all categories. Override per-bundle to specialise:
+# e.g. categories = ["politics"] for a politics-only benchmark.
+categories = []
+
+# Skip markets currently in UMA dispute — these are the most likely to
+# resolve 0.5 (which gets dropped from scoring anyway).
+exclude_disputed = true
+
+# Restrict to two-outcome (YES/NO) markets. Multi-outcome markets exist
+# on Polymarket but require a different probability-vector contract.
+binary_only = true
+
+[agent]
+timeout_sec = 300
+
+[verifier]
+disable = false
+
+[environment]
+# Shared sandbox image, same across every curated + generated task.
+# Singularity (HPC / K8s) requires a registry image; Docker pulls it too
+# under the default flow. The image is task-agnostic — task data is
+# bind-mounted into /data at trial-launch by the orchestrator
+# (openfinai_harbor.runner.build_task_data_mount).
+docker_image = "nihao0630/openfinai-base:v1"

@@ -1,0 +1,30 @@
+[metadata]
+family       = "{{ base_family }}"
+name         = "{{ task_id }}"
+source_paper = "{{ paper_id }}"
+routed_from  = "{{ routed_from }}"
+
+[curated]
+class_name   = "{{ class_name }}"
+class_module = "tasks.{{ routed_from }}.task"
+
+[curated.default_config]
+symbols              = {{ symbols | tojson }}
+target_symbols       = {{ target_symbols | tojson }}
+context_resolutions  = [
+{%- for r in context_resolutions %}
+    { interval = "{{ r.interval }}", bars = {{ r.bars }} }{{ "," if not loop.last else "" }}
+{%- endfor %}
+]
+data_resolution      = "{{ data_resolution }}"
+start                = "{{ start }}"
+end                  = "{{ end }}"
+initial_cash         = {{ initial_cash }}
+episode_length       = {{ episode_length }}
+start_offset         = {{ start_offset | default(0) }}
+slippage_pct         = {{ slippage_pct }}
+transaction_cost_pct = {{ transaction_cost_pct }}
+{% if docker_image %}
+[environment]
+docker_image = "{{ docker_image }}"
+{%- endif %}

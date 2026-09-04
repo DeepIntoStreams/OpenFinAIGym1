@@ -1,0 +1,131 @@
+run:
+  since_days: 730
+  max_papers_per_scope: 300  # arXiv collection stops once this many unique papers are gathered for a scope, before judge; effective cap is min(--limit, max_papers_per_scope)
+  max_accepts_per_scope: 18  # after full judge, keep at most this many accepted papers per scope, sorted by score_0_10 descending among accepted papers with valid excerpts
+
+scopes:
+  path: "config/scopes.yaml"
+
+collectors:
+  arxiv:
+    page_size: 40 # 40
+    max_pages: 2 # 3
+    enable_time_slicing: true
+    time_slice_days: 90
+    sort_by: "submittedDate"
+    request_interval_sec: 9.0
+    # arXiv's API takes 60-90s for the long-OR-chain queries in scopes.yaml;
+    # the previous 60s wall caused timed-out-but-server-side-processed requests
+    # that burned rate-limit quota for no result. 180s gives generous margin.
+    timeout_sec: 180.0
+  semantic_scholar:
+    enabled: true
+    cache_path: "data/pipeline_output/.cache/semantic_scholar_cache.json"
+  crossref:
+    enabled: true
+
+judge:
+  threshold_default: 0
+  max_llm_calls_per_scope: 40  # hard ceiling on Stage-2 sift LLM calls per scope
+  llm_judge_fraction: 0.8  # sift_budget = min(ceiling, int(--limit * fraction)); set 0 to disable scaling
+  prefilter_enabled: true
+  prefilter_llm_score_min: 4.0
+  prefilter_llm_confidence_min: 0.35
+  # Ranking is multiplicative: score = prefilter * (1 + citation_boost * quality) + recency_weight * recency.
+  # Relevance (prefilter) dominates; citation gives up to (1 + citation_boost)x amplification but cannot override.
+  ranking_citation_boost: 0.5
+  ranking_recency_weight: 0.1
+  ranking_recency_half_life_days: 365
+
+# LLM defaults for the construction pipeline (Phases 1-4). CLI flags
+# (--provider, --model, --max-tokens, --temperature, --llm-max-retries,
+# --timeout-sec, --tool-max-turns) override these per run. Per-phase
+# overrides under llm.per_phase.<phase>.{provider,model} let individual
+# stages use a different model from the global default — useful when
+# dataset construction needs a stronger model than reward / task / loader.
+# Precedence (highest wins): CLI > per_phase > global llm.*.
+llm:
+  provider: openrouter
+  temperature: 0.0
+  max_tokens: 20000
+  tool_max_turns: 10
+  retry:
+    max_retries: 3
+  providers:
+    openrouter:
+      model: openai/gpt-5.4-mini
+      timeout_sec: 600.0
+  per_phase:
+    scrape:
+      provider: null
+      model: null
+    summarize:
+      provider: null
+      model: null
+    triage:
+      provider: null
+      model: openai/gpt-5.4   # full model: triage extracts a structured per-paper config from full PDF text
+    dataset:
+      provider: null
+      model: openai/gpt-5.4   # full model: download codegen needs the stronger reasoning
+    reward:
+      provider: null
+      model: openai/gpt-5.4   # full model: Phase 3 reward_fn codegen benefits from stronger reasoning
+    task:
+      provider: null
+      model: openai/gpt-5.4   # full model: Phase 4 task assembly benefits from stronger reasoning
+    loader:
+      provider: null
+      model: openai/gpt-5.4   # full model: Phase 4 load.py codegen benefits from stronger reasoning
+
+download:
+  enabled: true
+  max_mb: 30
+  timeout_sec: 40.0
+
+storage:
+  artifact_dir: "data/pipeline_output/logs"
+
+papers:
+  root_dir: "data/pipeline_output/papers"
+
+datasets:
+  root_dir: "data/pipeline_output/datasets"
+  curated_root_dir: "data/knowledge_base/datasets"
+
+rewards:
+  root_dir: "data/knowledge_base/rewards/"
+  generated_dir: "data/pipeline_output/rewards"
+
+staging:
+  root_dir: "data/pipeline_output/.staging"
+
+benchmark:
+  execute_download: true
+  # Wall-clock seconds for each per-dataset download script subprocess. Must
+  # cover the largest realistic payload at modest unauthenticated throughput
+  # (a single 500MB Drive bundle pulled via gdown takes ~2-3 minutes).
+  download_timeout_sec: 300
+  # Phase 2 dataset-download codegen budget.
+  dataset_generation_rounds: 2
+  # Phase 3 reward_fn codegen budget.
+  reward_generation_rounds: 3
+  # Phase 4 task-assembly retry budget.
+  task_generation_rounds: 3
+  # Phase 4 per-task load.py codegen budget (independent inner loop).
+  loader_generation_rounds: 3
+  implementation:
+    sandbox_timeout_sec: 120
+    staging_dir: "data/pipeline_output/.staging/tasks"
+    construction_log: "tasks/generated/construction_log.jsonl"
+    tasks_install_dir: "tasks/generated"
+
+logging:
+  dir: "data/pipeline_output/logs"
+
+summary:
+  embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+  reranker_model: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+  candidate_top_k: 12
+  semantic_weight: 0.85
+  heuristic_weight: 0.15

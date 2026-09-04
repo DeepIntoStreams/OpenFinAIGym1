@@ -1,0 +1,51 @@
+# EDIT: replace `openfingym` with your namespace
+# Transfer helper for clusters that cannot clone from GitHub.
+#
+# Usage:
+#   kubectl -n openfingym create -f deploy/k8s/transfer_pod.yaml
+#   POD=$(kubectl -n openfingym get pods -l app=openfingym-transfer \
+#         --sort-by=.metadata.creationTimestamp \
+#         -o jsonpath='{.items[-1].metadata.name}')
+#   kubectl -n openfingym wait --for=condition=Ready pod/$POD --timeout=120s
+#   tar --exclude=.git --exclude=__pycache__ --exclude=data/run_output \
+#       -czf /tmp/bootstrap.tar.gz -C <parent-dir> OpenFinGym1 SkyRL-main
+#   kubectl -n openfingym cp /tmp/bootstrap.tar.gz $POD:/tmp/bootstrap.tar.gz
+#   kubectl -n openfingym exec $POD -- sh -c \
+#     'mkdir -p /mnt/openfingym/code /mnt/openfingym/sif_cache \
+#        /mnt/openfingym/run_output /mnt/openfingym/hf_cache \
+#      && tar -xzf /tmp/bootstrap.tar.gz -C /mnt/openfingym/code && rm /tmp/bootstrap.tar.gz'
+#   kubectl -n openfingym delete pod $POD
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: openfingym-transfer-
+  namespace: openfingym
+  labels:
+    # Kueue local queue. Drop this label on clusters without Kueue.
+    kueue.x-k8s.io/queue-name: openfingym-user-queue
+    app: openfingym-transfer
+spec:
+  completions: 1
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: openfingym-transfer
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: transfer
+          image: alpine:latest
+          # Keep the Pod available for transfers for one hour.
+          command: ["/bin/sh", "-c"]
+          args: ["apk add --no-cache tar && sleep 3600"]
+          resources:
+            requests: { cpu: 1, memory: 2Gi }
+            limits:   { cpu: 2, memory: 4Gi }
+          volumeMounts:
+            - { name: workspace, mountPath: /mnt/openfingym }
+      volumes:
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: openfingym-workspace

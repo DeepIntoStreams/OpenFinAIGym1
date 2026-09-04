@@ -1,0 +1,10 @@
+# GPU inference / online-RL extras for OpenFinGym (vLLM policy serving).
+# Equivalent to `pip install -e ".[rl]"` plus flash-attn.
+#
+#   pip install -r requirements.txt -r requirements-rl.txt
+#
+# Linux x86_64 + CUDA 12.x + Python 3.12 only. On other platforms
+# (macOS, Windows, aarch64) install these manually or build from source.
+vllm==0.10.2
+xformers==0.0.32.post1
+flash-attn @ https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3/flash_attn-2.8.3+cu12torch2.8cxx11abiTRUE-cp312-cp312-linux_x86_64.whl ; sys_platform == "linux" and platform_machine == "x86_64" and python_version == "3.12"

@@ -1,0 +1,90 @@
+# Runtime dependencies for OpenFinGym.
+# Mirror of pyproject.toml [project].dependencies. Dev tools (pytest,
+# pytest-cov, ruff, pre-commit) live only in
+# [tool.poetry.group.dev.dependencies] and are NOT duplicated here.
+# GPU inference/training extras (vllm, xformers, flash-attn) live in
+# requirements-rl.txt (equivalent to `pip install -e ".[rl]"`).
+
+# Config & validation
+pydantic>=2.12.5,<3.0.0
+omegaconf>=2.3.0,<3.0.0
+ml-collections>=1.1.0,<2.0.0
+python-dotenv>=1.0.1,<2.0.0
+jinja2>=3.1.6,<4.0.0
+
+# HTTP / web / feeds
+requests>=2.33.1,<3.0.0
+feedparser>=6.0.12,<7.0.0
+playwright>=1.49,<2.0
+
+# Cloud + dataset providers (declared deps used directly by the pipeline)
+boto3>=1.42.85,<2.0.0
+huggingface_hub>=0.26.0,<1.0.0
+kaggle>=2.0.0,<3.0.0
+fredapi>=0.5.2,<1.0.0
+yfinance>=1.2.2,<2.0.0
+gdown>=5.2.0,<6.0.0
+
+# Free data wrappers — Phase 2 LLM-generated download scripts target
+# these. Versions intentionally unpinned: the LLM adapts to whatever is
+# installed.
+ccxt
+akshare
+tushare
+baostock
+yahooquery
+pandas-datareader
+wbdata
+
+# Scientific / ML stack
+numpy>=2.4.4,<3.0.0
+pandas<4.0
+pyarrow<25.0
+h5py<4.0
+scipy>=1.17.1,<2.0.0
+scikit-learn>=1.8.0,<2.0.0
+# CUDA 12.6 wheels for torch on Linux; other platforms resolve from PyPI.
+--extra-index-url https://download.pytorch.org/whl/cu126
+torch==2.8.0
+torchvision==0.23.0
+torchaudio==2.8.0
+triton==3.4.0
+sentence-transformers>=3.0,<4.0
+transformers>=4.55.2,<5.0.0
+skyrl==0.1.0
+skyrl-gym==0.2.0
+peft==0.19.1
+accelerate>=1.0.0,<2.0.0
+ray>=2.51.0,<3.0.0
+jaxtyping>=0.3.0,<1.0.0
+tensordict>=0.12.0,<1.0.0
+torchdata
+datasets>=4.0.0,<5.0.0
+
+# LLM SDKs
+anthropic>=0.92.0,<0.93.0
+openai>=2.30.0,<3.0.0
+litellm<2.0
+
+# LangChain stack
+langchain>=1.2.15,<2.0.0
+langchain-core>=1.2.31,<2.0.0
+langchain-openai>=1.1.14,<2.0.0
+langchain-openrouter>=0.2.1,<0.3.0
+langchain-aws>=1.4.4,<2.0.0
+langchain-ollama>=1.1.0,<2.0.0
+langchain-anthropic>=1.4.0,<2.0.0
+
+# Harbor agent runtime
+harbor>=0.7.0,<0.8.0
+
+# API / serving utilities
+fastapi<1.0.0
+uvicorn<1.0.0
+filelock<4.0.0
+
+# Output / logging
+rich>=14.3.3,<15.0.0
+
+# Install the project itself in editable mode (matches README's `pip install -e .`)
+-e .

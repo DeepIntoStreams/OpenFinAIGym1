@@ -1,0 +1,21 @@
+"""Routed bundle entrypoint: {{ paper_id }} -> {{ routed_from }}.
+
+This bundle lives one level deeper (``tasks/routed/<id>/``) than the
+curated base task (``tasks/<base>/``). Harbor's curated loader requires a
+``task.py`` at the bundle root, so we re-export the base class here rather
+than duplicate its logic. We pin the repo root onto ``sys.path`` first so
+the import resolves regardless of how the verifier process was launched;
+the imported base class keeps its own ``__file__`` (and therefore its
+OHLCV cache directory) correct.
+"""
+
+import sys
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from tasks.{{ routed_from }}.task import {{ class_name }}
+
+__all__ = ["{{ class_name }}"]

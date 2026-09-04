@@ -1,0 +1,74 @@
+# Harbor trial config for ReActFinAgent (mirrors SkyRL's upstream
+# `examples/train_integrations/harbor/harbor_trial_config/default.yaml`,
+# adapted to our agent class).
+#
+# SkyRL injects at runtime:
+#   - task.path (from the prompt)
+#   - agent.model_name (constructed from served_model_name as
+#     "hosted_vllm/<served_model_name>")
+#   - agent.kwargs.api_base (from SkyRL's HTTP endpoint)
+#   - agent.kwargs.session_id (generated per-trial)
+#
+# `agent.kwargs` matches Terminus2's canonical surface: BaseFinAgent
+# constructs `harbor.llms.LiteLLM` from these kwargs, then ReActFinAgent
+# threads each turn through `harbor.llms.Chat.chat()`. When
+# collect_rollout_details=True, per-turn prompt/completion token IDs +
+# logprobs land in chat.rollout_details, which the agent mirrors onto
+# `context.rollout_details` at the end of run() — the field SkyRL's
+# HarborGenerator._harbor_agent_loop consumes.
+
+trials_dir: ~/trials
+
+timeout_multiplier: 1.0
+
+agent:
+  # Use ReActFinAgent via import path (not a built-in Harbor agent)
+  name: react-fin-agent
+  import_path: openfinai_harbor.agents.react_fin_agent:ReActFinAgent
+
+  override_timeout_sec: 600
+
+  kwargs:
+    max_turns: 15
+    temperature: 1.0
+
+    # Per-turn token IDs + logprobs are required by SkyRL's step-wise
+    # trainer. HarborGenerator will auto-enable this with a warning if
+    # left off; we set it explicitly so behaviour is config-visible.
+    collect_rollout_details: true
+
+    # Quiet noisy log when max_turns is set both here and by harbor's
+    # default. (Future cleanup: drop once defaults align.)
+    suppress_max_turns_warning: true
+
+    # Needed when model_name starts with "hosted_vllm/..." — harbor's
+    # LiteLLM calls validate_hosted_vllm_model_config which requires
+    # these fields. The token caps MUST match
+    # generator.inference_engine.engine_init_kwargs.max_model_len in
+    # config/rl.yaml; bumping max_model_len means bumping these too.
+    # Costs are zeroed for local training so completion_cost is a no-op.
+    model_info:
+      max_input_tokens: 8192
+      max_output_tokens: 8192
+      input_cost_per_token: 0.0
+      output_cost_per_token: 0.0
+
+    # Forwarded to harbor.llms.LiteLLM constructor (which forwards them
+    # to every litellm.acompletion call). Mirrors upstream's defaults:
+    # - timeout/max_retries control per-call HTTP semantics
+    # - top_p/top_k/min_p control sampling (vLLM honours these)
+    llm_kwargs:
+      timeout: 900
+      max_retries: 0
+      top_p: 1.0
+      top_k: -1
+      min_p: 0.0
+
+environment:
+  type: docker
+  override_cpus: 2
+  override_memory_mb: 4096
+  suppress_override_warnings: true
+
+verifier:
+  disable: false

@@ -1,0 +1,28 @@
+[metadata]
+family = "realtime_trading"
+name   = "realtime_stock_trading_alpaca_paper"
+
+[curated]
+class_name = "RealtimeStockTradingAlpacaPaper"
+
+[curated.default_config]
+symbols        = ["SPY", "QQQ", "IWM"]
+target_symbols = ["SPY", "QQQ"]
+max_steps      = 10
+context_resolutions = [
+    { interval = "1m", bars = 60 },
+    { interval = "5m", bars = 24 },
+    { interval = "1h", bars = 24 },
+]
+data_resolution = "1m"
+
+[trial]
+allow_internet = true
+
+[environment]
+# Shared sandbox image, same across every curated + generated task.
+# Singularity (HPC / K8s) requires a registry image; Docker pulls it too
+# under the default flow. The image is task-agnostic — task data is
+# bind-mounted into /data at trial-launch by the orchestrator
+# (openfinai_harbor.runner.build_task_data_mount).
+docker_image = "nihao0630/openfinai-base:v1"

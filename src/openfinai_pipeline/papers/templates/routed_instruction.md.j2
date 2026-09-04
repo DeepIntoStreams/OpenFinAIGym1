@@ -1,0 +1,146 @@
+# {{ task_id }}
+
+{{ task_description }}
+
+> Derived from the backtested setup in arXiv paper `{{ paper_id }}`, routed onto
+> the curated `{{ routed_from }}` task. This is a **historical replay**, but it
+> runs as an **interactive session**: the verifier holds the data and serves it
+> one bar at a time, advancing only when you submit an action — so you can never
+> read a future bar. There is no live market. Headline score is **PnL**
+> (mark-to-market profit/loss across the episode); the full metric panel is
+> under **Evaluation**.
+
+## Configuration
+
+| Field | Value |
+|---|---|
+| Symbol universe | `{{ symbols | join("`, `") }}` |
+| Target symbols (scored subset) | `{{ target_symbols | join("`, `") }}` |
+| Data resolution (bar interval) | `{{ data_resolution }}` |
+| Context resolutions | {% for r in context_resolutions %}`{{ r.interval }}×{{ r.bars }}`{{ ", " if not loop.last else "" }}{% endfor %} |
+| Date range | `{{ start }}` → `{{ end }}` (end exclusive) |
+| Initial cash | `{{ initial_cash }}` |
+| Episode length | `{{ episode_length }}` bars |
+| Slippage | `{{ "%.4f" | format(slippage_pct) }}` (fraction of traded notional) |
+| Transaction cost | `{{ "%.4f" | format(transaction_cost_pct) }}` (fraction of traded notional) |
+
+## How the episode runs (interactive — no data file)
+
+The verifier holds the market data and replays it **one bar at a time**. There
+is no `dataset.h5` and you do **not** receive the price series up front. You
+drive an interactive session:
+
+1. `reset` → the first **observation** (the current bar plus recent history up
+   to *now*, per symbol, plus your portfolio state).
+2. Decide an action for the current bar and `step` it.
+3. The verifier advances one bar and returns the **next observation** plus the
+   realized reward — and on the final bar, the score.
+
+You only ever see bars up to the current step, so look-ahead is impossible.
+Each observation is a dict shaped like:
+
+```python
+{
+  "step": int, "steps_remaining": int,
+  "symbols": {sym: {"symbol","price","open","high","low","close","volume",
+                    "timestamp","return_1h","returns_5h":[...],"returns_20h":[...],
+                    "recent_bars":[...], "order_book": None}},  # no live book offline
+  "portfolio": {"cash","reserved_cash","positions":{sym: float},
+                "pnl":{sym: float,"__total": float},"value","pending_orders":[...]},
+}
+```
+
+`positions` only holds symbols you currently have a position in — use
+`positions.get(sym, 0.0)`.
+
+This task has {{ symbols | length }} symbol(s): `{{ symbols | join("`, `") }}`.
+
+## Action format
+
+{{ action_space_description }}
+
+{{ action_format_description }}
+
+Each action is a transactional order intent, e.g.:
+
+```python
+{"action": "buy", "symbol": "<SYM>", "quantity": 0.5}          # market buy
+{"action": "sell", "symbol": "<SYM>", "quantity": 0.5}         # sell / open short
+{"action": "buy", "symbol": "<SYM>", "quantity": 0.5,
+ "order_type": "limit", "limit_price": 100.0, "tif": "gtc"}    # resting limit
+{"action": "hold"}                                             # do nothing
+```
+
+Orders are **capped by buying power (strict 1×)** — size quantity to your cash
+(e.g. `0.95 * cash / price`); over-budget orders are rejected, not raised. The
+verifier marks the held position to each bar's close; reward is the per-symbol
+PnL change, net of slippage + transaction cost per the Configuration above.
+
+## What you must build
+
+Write `/workspace/train.py` that defines a per-bar **policy** and runs the
+interactive session via the bundled helper:
+
+```python
+from harbor_submit import run_trading_session
+
+def policy(obs):
+    # Example 5-bar momentum on the first symbol: go long when the recent
+    # return is positive (sized to buying power), flatten otherwise.
+    cash = obs["portfolio"]["cash"]
+    positions = obs["portfolio"]["positions"]
+    for sym, bar in obs["symbols"].items():
+        r5 = bar.get("returns_5h") or []
+        pos = positions.get(sym, 0.0)
+        if sum(r5) > 0 and pos <= 0:
+            return {"action": "buy", "symbol": sym,
+                    "quantity": 0.95 * cash / bar["close"]}
+        if sum(r5) < 0 and pos > 0:
+            return {"action": "sell", "symbol": sym, "quantity": pos}
+    return {"action": "hold"}
+
+run_trading_session(policy)   # loops reset -> step* and writes reward.json
+```
+
+`run_trading_session` handles the reset/step loop, networking, auth, and
+writing `reward.json`. You can also drive `session_reset()` /
+`session_step(session_id, action)` directly if you prefer finer control.
+
+## Hard constraints
+
+- **Decide each action from the observation you are given** — future bars are
+  withheld by the verifier; there is no way to look ahead.
+- Actions are **transactional order intents** (`{"action": "buy"|"sell"|
+  "hold"|"cancel", "symbol": ..., "quantity": ...}`) or `{"orders": [...]}`.
+  **Size orders to your buying power** (strict 1× cap); over-budget orders are
+  rejected (see `info["rejections"]`), not raised.
+- **Do not** write `reward.json` or any other harbor output yourself — the
+  helper does it.
+- No torch / GPU / heavy libraries. NumPy + pandas + scikit-learn are
+  available; keep total compute well within the episode budget.
+
+## Evaluation
+
+{{ evaluation_description }}
+
+Reward keys written to `reward.json`:
+
+- `pnl` — total mark-to-market PnL across the episode. **Headline metric**
+  (mirrored as `reward`).
+- `sharpe_ratio` — annualised Sharpe of the per-bar return stream.
+- `max_drawdown` — largest peak-to-trough drawdown.
+- `win_rate` — fraction of bars with positive return.
+- `total_return`, `mean_return`, `std_return`, `num_trades` — trade-history
+  scalar stats.
+- `steps_executed` — number of bars stepped (sanity check; should equal
+  `episode_length`).
+
+## Response format
+
+Wrap your solution in a single fenced Python block:
+
+```python
+# your code here
+```
+
+Output ONLY the markdown block — no surrounding prose.

@@ -1,0 +1,53 @@
+# Native-SIF trial config for hosts that cannot run the published x86_64 image.
+# Build deploy/singularity/openfinai_sandbox.def, then set both:
+#   - OPENFINAI_SANDBOX_SIF (or environment.kwargs.sif_path)
+#   - environment.mounts[0].source to a native conda environment
+# The SIF supplies the sandbox server; the bind supplies the ML stack.
+# Per-task /data mounts are injected by _TaskAwareTrialConfigDict.
+
+# Relative to the repository root.
+trials_dir: data/run_output/rl_trials
+
+timeout_multiplier: 1.0
+
+agent:
+  name: simple-llm
+  import_path: openfinai_harbor.agents.single_shot_llm:SingleShotLLMAgent
+  override_timeout_sec: 300
+  kwargs:
+    temperature: 1.0
+    system_prompt_path: examples/prompts/financial_competitive.txt
+    collect_rollout_details: true
+    model_info:
+      max_input_tokens: 8192
+      max_output_tokens: 8192
+      input_cost_per_token: 0.0
+      output_cost_per_token: 0.0
+    llm_kwargs:
+      timeout: 900
+      max_retries: 0
+      top_p: 1.0
+      top_k: -1
+      min_p: 0.0
+
+environment:
+  # Uses a local SIF; Harbor retains control of isolation and lifecycle.
+  import_path: openfinai_harbor.environments.prebuilt_sif:PrebuiltSifSingularityEnvironment
+  override_cpus: 2
+  override_memory_mb: 4096
+  suppress_override_warnings: true
+  # Bind the native Python/CUDA environment into the minimal SIF.
+  mounts:
+    - type: bind
+      source: /path/to/conda/envs/openfingym   # EDIT: native conda environment
+      target: /opt/conda
+  # Keep the conda interpreter ahead of the SIF's minimal Python.
+  env:
+    PATH: /opt/conda/bin:/usr/local/bin:/usr/bin:/bin
+    LD_LIBRARY_PATH: /opt/conda/lib
+  # To configure the SIF here, expand kwargs and uncomment sif_path.
+  kwargs: {}
+    # sif_path: /path/to/sif_cache/openfinai-sandbox.sif   # or set $OPENFINAI_SANDBOX_SIF
+
+verifier:
+  disable: false

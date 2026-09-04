@@ -1,0 +1,307 @@
+[
+  {
+    "name": "CovarianceReward",
+    "description": "Compares covariance structure across features between real and generated time series. Captures cross-sectional dependence but not temporal patterns.",
+    "module": "reward_bank",
+    "class_name": "CovLoss",
+    "base_class": "Loss",
+    "default_params": {}
+  },
+  {
+    "name": "AutoCorrelationReward",
+    "description": "Qualitative way to visualize and compare the autocorrelation of each spatial dimension of the real and fake time series distribution.",
+    "module": "reward_bank",
+    "class_name": "ACFLoss",
+    "base_class": "Loss",
+    "default_params": {
+      "max_lag": 64,
+      "stationary": true
+    }
+  },
+  {
+    "name": "CrossCorrelationReward",
+    "description": "Compares lagged cross-correlations between features and across time, capturing inter-feature temporal relationships.",
+    "module": "reward_bank",
+    "class_name": "CrossCorrelLoss",
+    "base_class": "Loss",
+    "default_params": {
+      "max_lag": 64
+    }
+  },
+  {
+    "name": "MeanAbsDiffReward",
+    "description": "Computes average L1 distance between real and generated samples. Simple marginal discrepancy measure; does not capture temporal structure.",
+    "module": "reward_bank",
+    "class_name": "MeanLoss",
+    "base_class": "Loss",
+    "default_params": {}
+  },
+  {
+    "name": "HistogramReward",
+    "description": "Compares the marginal distribution of real and generated data using per-time-step, per-feature histograms. Captures differences in the full univariate distribution (location, scale, skew, kurtosis) without relying on Gaussian assumptions.",
+    "module": "reward_bank",
+    "class_name": "HistogramLoss",
+    "base_class": "Loss",
+    "default_params": {
+      "n_bins": 50
+    }
+  },
+  {
+    "name": "MMDReward",
+    "description": "Kernel-based discrepancy (signature MMD) comparing real and generated path distributions. Captures higher-order structure in path space.",
+    "module": "reward_bank",
+    "class_name": "Sig_MMD_loss",
+    "base_class": "Loss",
+    "default_params": {
+      "depth": 5
+    }
+  },
+  {
+    "name": "SigW1Reward",
+    "description": "A metric to compare real and fake time series distribution based on the path signature method. Specifically, it computes the L2 norm of the expected signature on the real and fake path distriubtion, where in theory the expected signature can fully characterise the distribution of data sequences.",
+    "module": "reward_bank",
+    "class_name": "SigW1Loss",
+    "base_class": "Loss",
+    "default_params": {
+      "depth": 4
+    }
+  },
+  {
+    "name": "ONNDReward",
+    "description": "Outgoing Nearest Neighbour Distance assessing diversity of generated samples by comparing local neighbourhood radii.",
+    "module": "reward_bank",
+    "class_name": "ONNDMetricLoss",
+    "base_class": "Loss",
+    "default_params": {}
+  },
+  {
+    "name": "ICDReward",
+    "description": "Intra-Class Distance measuring dispersion within generated samples. Useful for detecting mode collapse in generative models.",
+    "module": "reward_bank",
+    "class_name": "ICDMetricLoss",
+    "base_class": "Loss",
+    "default_params": {}
+  },
+  {
+    "name": "VARReward",
+    "description": "Calculates the alpha-value at risk to assess the tail distribution match of the generated data",
+    "module": "reward_bank",
+    "class_name": "VARMetricLoss",
+    "base_class": "Loss",
+    "default_params": {
+      "alpha": 0.05,
+      "statistic": "var"
+    }
+  },
+  {
+    "name": "EmbeddingFID",
+    "description": "Frechet Inception Distance between precomputed real and fake embeddings. Replaces model-taking Predictive_FID: the task is expected to extract embeddings upstream and supply them via the evaluator context.",
+    "module": "reward_bank",
+    "class_name": "EmbeddingFID",
+    "base_class": "Loss",
+    "default_params": {}
+  },
+  {
+    "name": "EmbeddingKID",
+    "description": "Kernel Inception Distance (polynomial-kernel MMD) between precomputed real and fake embeddings. Replaces model-taking Predictive_KID.",
+    "module": "reward_bank",
+    "class_name": "EmbeddingKID",
+    "base_class": "Loss",
+    "default_params": {}
+  },
+  {
+    "name": "MSE",
+    "description": "Mean squared error between predictions and targets.",
+    "module": "reward_bank",
+    "class_name": "MSELoss",
+    "base_class": "Loss",
+    "default_params": {}
+  },
+  {
+    "name": "RMSE",
+    "description": "Root mean squared error for forecasting.",
+    "module": "reward_bank",
+    "class_name": "RMSELoss",
+    "base_class": "Loss",
+    "default_params": {}
+  },
+  {
+    "name": "MAE",
+    "description": "Mean absolute error for forecasting tasks.",
+    "module": "reward_bank",
+    "class_name": "MAELoss",
+    "base_class": "Loss",
+    "default_params": {}
+  },
+  {
+    "name": "MAPE",
+    "description": "Mean absolute percentage error.",
+    "module": "reward_bank",
+    "class_name": "MAPELoss",
+    "base_class": "Loss",
+    "default_params": {
+      "eps": 1e-08
+    }
+  },
+  {
+    "name": "DirectionalAccuracy",
+    "description": "Measures the proportion of correct direction predictions.",
+    "module": "reward_bank",
+    "class_name": "DirectionalAccuracy",
+    "base_class": "Loss",
+    "default_params": {}
+  },
+  {
+    "name": "SignLoss",
+    "description": "Penalty for predicting the wrong direction.",
+    "module": "reward_bank",
+    "class_name": "SignLoss",
+    "base_class": "Loss",
+    "default_params": {}
+  },
+  {
+    "name": "QuantileLoss",
+    "description": "Pinball loss for quantile regression. Configure the target quantile via params (default 0.5 = median).",
+    "module": "reward_bank",
+    "class_name": "QuantileLoss",
+    "base_class": "Loss",
+    "default_params": {
+      "quantile": 0.5
+    }
+  },
+  {
+    "name": "CRPS",
+    "description": "Continuous Ranked Probability Score for probabilistic forecasting. Requires multiple forecast samples per target, supplied via the pred_samples context key of shape [N, S, D].",
+    "module": "reward_bank",
+    "class_name": "CRPSLoss",
+    "base_class": "Loss",
+    "default_params": {}
+  },
+  {
+    "name": "PearsonCorrelation",
+    "description": "Pearson correlation r between predicted and true vectors over the forecast window. Higher is better; range [-1, 1]. Use a positive evaluator weight to maximise.",
+    "module": "reward_bank",
+    "class_name": "PearsonCorrelation",
+    "base_class": "Loss",
+    "default_params": {
+      "eps": 1e-08
+    }
+  },
+  {
+    "name": "SpearmanCorrelation",
+    "description": "Spearman rank correlation between predictions and targets - the Information Coefficient in factor research. Robust to monotone non-linearities. Higher is better; range [-1, 1].",
+    "module": "reward_bank",
+    "class_name": "SpearmanCorrelation",
+    "base_class": "Loss",
+    "default_params": {
+      "eps": 1e-08
+    }
+  },
+  {
+    "name": "F1Score",
+    "description": "Macro-F1 of binary direction classification (y_pred > threshold vs y_true > threshold). Complements DirectionalAccuracy on imbalanced regimes. Higher is better; range [0, 1].",
+    "module": "reward_bank",
+    "class_name": "F1Score",
+    "base_class": "Loss",
+    "default_params": {
+      "threshold": 0.0,
+      "eps": 1e-08
+    }
+  },
+  {
+    "name": "R2Score",
+    "description": "Coefficient of determination 1 - SS_res / SS_tot. Higher is better; range (-inf, 1]. Negative indicates worse than predicting the mean.",
+    "module": "reward_bank",
+    "class_name": "R2Score",
+    "base_class": "Loss",
+    "default_params": {
+      "eps": 1e-08
+    }
+  },
+  {
+    "name": "HuberLoss",
+    "description": "Smooth L1/L2 hybrid: quadratic for |y_pred - y_true| <= delta, linear beyond. Robust to heavy-tailed return distributions. Lower is better.",
+    "module": "reward_bank",
+    "class_name": "HuberLoss",
+    "base_class": "Loss",
+    "default_params": {
+      "delta": 1.0
+    }
+  },
+  {
+    "name": "SharpeRatioLoss",
+    "description": "Sharpe ratio of directional strategy returns sign(y_pred) * y_true. Loss-form forecasting metric consuming aligned tensors. Higher is better. Distinct from the curated-task-only TradingReward SharpeRatio that consumes trade-history dicts.",
+    "module": "reward_bank",
+    "class_name": "SharpeRatioLoss",
+    "base_class": "Loss",
+    "default_params": {
+      "eps": 1e-08
+    }
+  },
+  {
+    "name": "SortinoRatio",
+    "description": "Mean strategy return divided by downside-only standard deviation. Penalises downside risk only, unlike Sharpe. Higher is better.",
+    "module": "reward_bank",
+    "class_name": "SortinoRatio",
+    "base_class": "Loss",
+    "default_params": {
+      "eps": 1e-08
+    }
+  },
+  {
+    "name": "DirectionAccuracy",
+    "description": "1.0 when predicted direction matches actual market move, 0.0 otherwise.",
+    "module": "reward_bank",
+    "class_name": "DirectionAccuracy",
+    "base_class": "TradingReward",
+    "default_params": {}
+  },
+  {
+    "name": "PnL",
+    "description": "Signed profit-and-loss assuming a unit-size position in the predicted direction.",
+    "module": "reward_bank",
+    "class_name": "PnL",
+    "base_class": "TradingReward",
+    "default_params": {}
+  },
+  {
+    "name": "ReturnMAE",
+    "description": "Mean absolute error between predicted and actual return magnitude.",
+    "module": "reward_bank",
+    "class_name": "ReturnMAE",
+    "base_class": "TradingReward",
+    "default_params": {}
+  },
+  {
+    "name": "SharpeRatio",
+    "description": "Annualisation-free Sharpe ratio: mean(PnL) / std(PnL). Aggregate-only metric.",
+    "module": "reward_bank",
+    "class_name": "SharpeRatio",
+    "base_class": "TradingReward",
+    "default_params": {}
+  },
+  {
+    "name": "MaxDrawdown",
+    "description": "Worst peak-to-trough decline in cumulative PnL (negative value). Aggregate-only metric.",
+    "module": "reward_bank",
+    "class_name": "MaxDrawdown",
+    "base_class": "TradingReward",
+    "default_params": {}
+  },
+  {
+    "name": "WinRate",
+    "description": "Fraction of trades with positive PnL. Aggregate-only metric.",
+    "module": "reward_bank",
+    "class_name": "WinRate",
+    "base_class": "TradingReward",
+    "default_params": {}
+  },
+  {
+    "name": "QuantityPnL",
+    "description": "PnL with explicit quantity * price-change (entry/exit with optional slippage and transaction cost). Intended for live-trading tasks.",
+    "module": "reward_bank",
+    "class_name": "QuantityPnL",
+    "base_class": "TradingReward",
+    "default_params": {}
+  }
+]

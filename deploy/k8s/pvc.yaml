@@ -1,0 +1,21 @@
+# EDIT: replace `openfingym` with your namespace
+# Shared RL workspace; bootstrap_repo.yaml creates this layout:
+#   /mnt/openfingym/
+#     code/
+#       OpenFinGym1/
+#       SkyRL-main/
+#     sif_cache/  run_output/  hf_cache/  podman_storage/
+# The storage class must support concurrent ReadWriteMany mounts.
+# Apply: kubectl -n openfingym apply -f pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: openfingym-workspace
+  namespace: openfingym
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: csi-cephfs-sc   # EDIT: your RWX storage class

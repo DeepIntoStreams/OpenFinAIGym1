@@ -1,0 +1,100 @@
+# Online RL training config for OpenFinGym + Harbor + SkyRL.
+# Usage:
+#   python -m openfinai_skyrl.entrypoints.main_rl \
+#       --config config/rl.yaml \
+#       data.train_data=[tasks]
+#
+# main_rl deep-merges harbor_trial_config into config/harbor_trial_rl.yaml.
+# HarborGenerator requires step_wise_trajectories, merge_stepwise_output,
+# and token_mean loss reduction as configured below.
+
+data:
+  train_data:
+    - tasks
+
+generator:
+  n_samples_per_prompt: 4
+  apply_overlong_filtering: true
+
+  # Required by HarborGenerator. Single-shot trajectories contain one step,
+  # so merging is a no-op.
+  step_wise_trajectories: true
+  merge_stepwise_output: true
+
+  # HarborGenerator expects a separate asynchronous call per rollout.
+  batched: false
+
+  inference_engine:
+    backend: vllm
+    served_model_name: Qwen3-0.6B
+
+    # num_engines * tensor_parallel_size must not exceed allocated GPUs.
+    num_engines: 4
+    tensor_parallel_size: 2
+    gpu_memory_utilization: 0.8
+
+    # Local Ray vLLM actors receive policy updates over NCCL after PPO steps.
+    run_engines_locally: true
+    async_engine: true
+    weight_sync_backend: nccl
+    enforce_eager: false
+    enable_http_endpoint: true
+    http_endpoint_host: 127.0.0.1
+    http_endpoint_port: 8000
+
+    engine_init_kwargs:
+      max_model_len: 8192
+      enable_log_requests: false
+
+  rate_limit:
+    trajectories_per_second: 2.0
+    max_concurrency: 8
+
+trainer:
+  # FSDP2 supports online NCCL weight synchronization.
+  strategy: fsdp2
+
+  placement:
+    # Share GPUs to keep weight synchronization local.
+    colocate_all: true
+
+    # Override these single-node defaults for larger allocations.
+    policy_num_nodes: 1
+    policy_num_gpus_per_node: 8
+
+    # The frozen KL reference model shares these GPUs.
+    ref_num_nodes: 1
+    ref_num_gpus_per_node: 8
+
+  algorithm:
+    max_seq_len: 8192
+    advantage_estimator: grpo
+
+    # Required with merge_stepwise_output for merge-invariant loss.
+    loss_reduction: token_mean
+
+    use_kl_loss: true
+    kl_coeff: 0.01
+
+    # Bound token importance ratios when rollout and training policies drift.
+    off_policy_correction:
+      tis_ratio_type: token
+      token_tis_ratio_clip_high: 2.0
+
+  policy:
+    model:
+      path: Qwen/Qwen3-0.6B
+
+  train_batch_size: 4
+  micro_train_batch_size_per_gpu: 2
+
+  project_name: openfinai_rl
+  run_name: openfinai_rl_run
+  logger: console
+
+# Overrides are deep-merged into config/harbor_trial_rl.yaml.
+# Local Docker example:
+#   python -m openfinai_skyrl.entrypoints.main_rl \
+#       --config config/rl.yaml \
+#       harbor_trial_config.environment.type=docker
+harbor_trial_config: {}

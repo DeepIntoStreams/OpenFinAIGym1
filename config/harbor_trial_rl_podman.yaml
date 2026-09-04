@@ -1,0 +1,64 @@
+# Harbor trials using rootless Podman under Kubernetes baseline PodSecurity.
+# Unlike the Singularity configuration, this needs no CAP_SYS_ADMIN and uses
+# the project's environment provider through Harbor's import_path extension.
+# Coexistence: `harbor_trial_rl.yaml` is unchanged. Kubernetes launches set
+# HARBOR_TRIAL_CONFIG=config/harbor_trial_rl_podman.yaml (see
+# deploy/k8s/launch_rl.sh --provider podman).
+#
+# SkyRL injects at runtime (same as the singularity yaml):
+#   - task.path (from the prompt)
+#   - agent.model_name (constructed from served_model_name as
+#     "hosted_vllm/<served_model_name>")
+#   - agent.kwargs.api_base (from SkyRL's HTTP endpoint)
+#   - agent.kwargs.session_id (generated per-trial)
+
+trials_dir: ~/trials
+
+timeout_multiplier: 1.0
+
+agent:
+  # SingleShotLLMAgent — single LLM call producing a self-contained train.py
+  # that Harbor's verifier executes inside the container.
+  name: simple-llm
+  import_path: openfinai_harbor.agents.single_shot_llm:SingleShotLLMAgent
+
+  override_timeout_sec: 600
+
+  kwargs:
+    temperature: 1.0
+    system_prompt_path: examples/prompts/financial_expert.txt
+    collect_rollout_details: true
+    model_info:
+      max_input_tokens: 8192
+      max_output_tokens: 8192
+      input_cost_per_token: 0.0
+      output_cost_per_token: 0.0
+    llm_kwargs:
+      timeout: 900
+      max_retries: 0
+      top_p: 1.0
+      top_k: -1
+      min_p: 0.0
+
+environment:
+  # Use the project's Podman provider via import_path. Required inside pods
+  # running the `baseline` PodSecurity profile, which forbids SYS_ADMIN
+  # (Singularity needs it for apptainer mount propagation). See:
+  #   - src/openfinai_harbor/environments/podman.py
+  #   - deploy/k8s/openfinai_rl_job.tpl.yml (Pod-side podman+uidmap install)
+  #   - deploy/k8s/README.md
+  import_path: openfinai_harbor.environments.podman:PodmanEnvironment
+  override_cpus: 2
+  override_memory_mb: 4096
+  suppress_override_warnings: true
+  # Per-task /data bind mount is injected at trajectory-build time by
+  # openfinai_skyrl.openfinai_generator._TaskAwareTrialConfigDict
+  # — same mechanism as the singularity yaml; provider-agnostic.
+  kwargs:
+    # Persistent podman storage on the PVC so concurrent trials in the Pod
+    # share a single image-pull and overlay graph. Pod-bootstrap pre-pulls
+    # nihao0630/openfinai-base:v1 here before the first trial.
+    podman_storage_root: /workspace/podman_storage
+
+verifier:
+  disable: false

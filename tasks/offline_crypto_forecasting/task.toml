@@ -1,0 +1,39 @@
+version = "1.0"
+
+[metadata]
+name = "offline_crypto_forecasting"
+description = "Predict the absolute close price `forecast_horizon_bars` ahead for BTCUSDT/ETHUSDT/SOLUSDT from 10 OHLCV-derived features (Binance hourly bars)."
+family = "offline_forecasting"
+difficulty = "medium"
+domain = "financial"
+keywords = ["forecasting", "crypto", "binance", "ohlcv", "price-prediction", "curated"]
+
+[curated]
+class_name = "OfflineCryptoForecasting"
+
+[curated.default_config]
+symbols        = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+target_symbols = ["BTCUSDT", "ETHUSDT"]
+interval       = "1h"
+start          = "2020-01-01"
+end            = "2023-01-01"
+train_ratio    = 0.8
+forecast_horizon_bars = 1
+headline_metric = "mape"
+
+[agent]
+timeout_sec = 600
+
+[verifier]
+timeout_sec = 600
+
+[environment]
+cpus = 2
+memory_mb = 4096
+allow_internet = true
+# Shared sandbox image, same across every curated + generated task.
+# Singularity (HPC / K8s) requires a registry image; Docker pulls it too
+# under the default flow. The image is task-agnostic — task data is
+# bind-mounted into /data at trial-launch by the orchestrator
+# (openfinai_harbor.runner.build_task_data_mount).
+docker_image = "nihao0630/openfinai-base:v1"

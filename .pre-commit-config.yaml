@@ -1,0 +1,20 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+    -   id: check-merge-conflict
+    -   id: check-toml
+    -   id: check-yaml
+    -   id: check-json
+    -   id: end-of-file-fixer
+    -   id: trailing-whitespace
+    -   id: check-added-large-files
+        exclude: poetry.lock
+    -   id: detect-private-key
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    # Keep in sync with the ruff version in pyproject.toml (dev group).
+    rev: v0.15.9
+    hooks:
+    -   id: ruff-check
+        args: ["--fix"]
+    -   id: ruff-format

@@ -1,0 +1,52 @@
+# EDIT: replace `openfingym` with your namespace
+#
+# Update Job: git fetch + reset on both code repos. Run between training Jobs
+# whenever you push a commit.
+#
+# Apply (use `create`, not `apply`, because the manifest uses generateName):
+#   kubectl -n openfingym create -f update_repo.yaml
+#   JOB=$(kubectl -n openfingym get jobs --sort-by=.metadata.creationTimestamp -o name | grep update-openfingym | tail -1)
+#   kubectl -n openfingym wait --for=condition=complete "$JOB" --timeout=120s
+#   kubectl -n openfingym logs "$JOB"
+#   kubectl -n openfingym delete "$JOB"
+#
+# Or use:  bash deploy/k8s/run_update.sh
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: update-openfingym-
+  namespace: openfingym
+  labels:
+    # Kueue local queue. Drop this label on clusters without Kueue.
+    kueue.x-k8s.io/queue-name: openfingym-user-queue
+spec:
+  completions: 1
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: update
+          image: alpine/git:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -eux
+              cd /mnt/openfingym/code/OpenFinGym1
+              git fetch --depth=1 origin main
+              git reset --hard origin/main
+              git log -1 --oneline
+              cd /mnt/openfingym/code/SkyRL-main
+              git fetch --depth=1 origin main
+              git reset --hard origin/main
+              git log -1 --oneline
+          resources:
+            requests: { cpu: 1, memory: 1Gi }
+            limits:   { cpu: 1, memory: 2Gi }
+          volumeMounts:
+            - { name: workspace, mountPath: /mnt/openfingym }
+      volumes:
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: openfingym-workspace

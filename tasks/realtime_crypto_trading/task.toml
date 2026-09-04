@@ -1,0 +1,30 @@
+[metadata]
+family = "realtime_trading"
+name   = "realtime_crypto_trading"
+
+[curated]
+class_name = "RealtimeCryptoTrading"
+
+[curated.default_config]
+symbols              = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+target_symbols       = ["BTCUSDT", "ETHUSDT"]
+slippage_pct         = 0.001
+transaction_cost_pct = 0.0
+max_steps            = 10
+context_resolutions = [
+    { interval = "1m", bars = 60 },
+    { interval = "5m", bars = 24 },
+    { interval = "1h", bars = 24 },
+]
+data_resolution = "1m"
+
+[trial]
+allow_internet = true
+
+[environment]
+# Shared sandbox image, same across every curated + generated task.
+# Singularity (HPC / K8s) requires a registry image; Docker pulls it too
+# under the default flow. The image is task-agnostic — task data is
+# bind-mounted into /data at trial-launch by the orchestrator
+# (openfinai_harbor.runner.build_task_data_mount).
+docker_image = "nihao0630/openfinai-base:v1"

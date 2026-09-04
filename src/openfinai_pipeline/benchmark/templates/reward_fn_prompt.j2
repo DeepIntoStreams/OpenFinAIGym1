@@ -1,0 +1,157 @@
+Write a PyTorch evaluation reward module implementing a Loss subclass.
+
+Target reward: {{ reward_name }}
+Aliases: {{ aliases }}
+Description: {{ description }}
+
+Previous round script:
+{{ previous_script }}
+
+Previous execution log:
+{{ execution_log }}
+
+Previous round review:
+{{ previous_review }}
+
+=== IMPORT (required at the top of your module) ===
+
+from reward_bank import Loss
+import torch
+
+{{ contract_rules }}
+
+=== EXAMPLE 1: Forecasting reward (gt captured at init) ===
+
+class MSELoss(Loss):
+    """Mean squared error between predicted and target."""
+    def __init__(self, gt, name="test"):
+        super().__init__(name=name)
+        self.gt = gt.float()
+
+    def forward(self, pred):
+        return ((pred.float() - self.gt) ** 2).mean()
+
+=== EXAMPLE 2: Generative pair-distance reward (real captured at init) ===
+
+class MeanLoss(Loss):
+    """L1 distance between mean of generated and real samples along (0, 1)."""
+    def __init__(self, gt, name="test"):
+        super().__init__(name=name)
+        self.real_mean = gt.float().mean((0, 1))
+
+    def forward(self, pred):
+        return torch.abs(pred.float().mean((0, 1)) - self.real_mean).mean()
+
+=== EXAMPLE 3: Generative single-fake reward (no reference needed) ===
+
+class IntraClassDispersionLoss(Loss):
+    """Intra-class dispersion of generated samples — no reference needed."""
+    def forward(self, pred):
+        flat = pred.reshape(pred.shape[0], -1)
+        centred = flat - flat.mean(0, keepdim=True)
+        return centred.pow(2).mean()
+
+=== EXAMPLE 4: Embedding-pair reward (model-free FID-style) ===
+
+class EmbeddingFID(Loss):
+    """Frechet distance on precomputed embeddings."""
+    def __init__(self, real_emb, name="test"):
+        super().__init__(name=name)
+        self.mu_real = real_emb.float().mean(0).detach()
+
+    def forward(self, fake_emb):
+        mu_fake = fake_emb.float().mean(0)
+        return ((mu_fake - self.mu_real) ** 2).sum()
+
+=== EXAMPLE 5: Forecasting reward with hyperparameter ===
+
+class HuberLoss(Loss):
+    """Huber loss with configurable delta hyperparameter."""
+    def __init__(self, gt, delta=1.0, name="test"):
+        super().__init__(name=name)
+        self.gt = gt.float()
+        self.delta = float(delta)
+
+    def forward(self, pred):
+        diff = pred.float() - self.gt
+        absdiff = diff.abs()
+        quadratic = torch.minimum(absdiff, torch.tensor(self.delta, dtype=diff.dtype, device=diff.device))
+        linear = absdiff - quadratic
+        return (0.5 * quadratic ** 2 + self.delta * linear).mean()
+
+=== REWARD SHAPES (pick one based on the target reward) ===
+
+Choose ONE shape based on what your metric needs from ctx:
+
+- Forecasting / pair-distance:
+    __init__(self, gt, ...): captures ground truth at init
+    forward(self, pred):     consumes the agent's prediction
+- Generative single-fake (no reference data needed):
+    forward(self, pred):     no __init__ override required
+- Embedding pair (model-free FID/KID substitute):
+    __init__(self, real_emb, ...): captures real-side embeddings
+    forward(self, fake_emb):       consumes agent embeddings
+- Probabilistic / multi-sample agent forecasts (CRPS-like):
+    __init__(self, gt, ...):
+    forward(self, pred_samples):
+
+The legacy alias names (y_true, x_real, y_pred, x_fake, y_pred_samples) are
+NO LONGER ACCEPTED — use the canonical names directly. RULE R3 forbids
+init-only names from forward(); RULE R4 forbids forward-only names from
+__init__.
+
+=== HYPERPARAMETERS ===
+
+Any parameter name that is NOT in the canonical set must have a literal
+default value. These are tunable hyperparameters: ``eps``, ``alpha``,
+``depth``, ``quantile``, ``lookback``, etc. The runtime introspects
+``__init__`` and passes them through. Per-task overrides flow on top via
+the catalog's params block.
+
+If you need a per-task CONSTANT (e.g. ``initial_capital``,
+``risk_free_rate``) that is not in the canonical set yet, give it a
+sensible default for now (e.g. ``initial_capital=1.0``) and the metric
+will be portable across tasks. We are tracking this gap separately.
+
+=== REQUIREMENTS ===
+
+- Output valid Python code only. Start with: ``from reward_bank import Loss``.
+- Do NOT redefine the Loss base class.
+- Conform to RULES R1-R6 above.
+- Choose the SINGLE most appropriate shape (forecasting / generative /
+  embedding-pair / single-fake / multi-sample).
+- Never accept a whole ``nn.Module`` (model or discriminator) as an init
+  argument — use the embedding-pair pattern with ``real_emb`` /
+  ``fake_emb`` if you need feature-space distances.
+- Handle edge cases (division by zero, empty tensors) gracefully.
+- Do NOT define a standalone evaluate() function. Only define a single
+  Loss subclass.
+- Do NOT add ``**kwargs`` (or ``*args``) to ``__init__`` — list every
+  parameter explicitly. The Loss base only takes ``name``, so
+  ``super().__init__(name=name)`` is sufficient.
+- The metric MUST visibly depend on ``pred`` / ``fake_emb`` /
+  ``pred_samples`` (whichever your shape uses). A metric whose result is
+  computed purely from gt is broken — the agent's score wouldn't depend on
+  what they predicted.
+
+=== VALIDATION (your code will be automatically tested) ===
+
+After codegen the pipeline runs, in this order:
+
+1. Static AST contract check: parses the source and verifies RULES R1-R6.
+   Violation messages are precise (e.g. "param 'gt' has a default value —
+   RULE R1 violation; remove the default").
+2. Pytest unified reward contract: instantiates the class via signature
+   introspection (canonical reference params bound from a sample tensor),
+   then calls the metric with a sample agent tensor and asserts the result
+   is a finite scalar ``torch.Tensor``.
+3. The reviewer reads the AST violations + pytest output and proposes
+   fixes. The reviewer is NOT allowed to suggest changes that violate
+   R1-R6 (e.g. it will never tell you to add ``gt`` to ``forward``) or
+   that use vague generic param names.
+
+=== RESPONSE FORMAT ===
+
+Return JSON with exactly one key:
+
+- code: string — the Python source for the reward module.

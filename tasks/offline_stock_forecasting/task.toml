@@ -1,0 +1,24 @@
+[metadata]
+family = "offline_forecasting"
+name   = "offline_stock_forecasting"
+
+[curated]
+class_name = "OfflineStockForecasting"
+
+[curated.default_config]
+symbols        = ["SPY", "QQQ", "IWM"]
+target_symbols = ["SPY", "QQQ"]
+interval       = "1h"
+start          = "2020-01-01"
+end            = "2023-01-01"
+train_ratio    = 0.8
+forecast_horizon_bars = 1
+headline_metric       = "mape"
+
+[environment]
+# Shared sandbox image, same across every curated + generated task.
+# Singularity (HPC / K8s) requires a registry image; Docker pulls it too
+# under the default flow. The image is task-agnostic — task data is
+# bind-mounted into /data at trial-launch by the orchestrator
+# (openfinai_harbor.runner.build_task_data_mount).
+docker_image = "nihao0630/openfinai-base:v1"

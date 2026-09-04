@@ -1,0 +1,95 @@
+# OpenFinGym shared base image.
+# Build once from the project root:
+#   docker build -t openfinai-base -f docker/Dockerfile.base .
+#
+# Each task's Dockerfile inherits from this image:
+#   FROM openfinai-base:latest
+
+FROM python:3.10-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+# libgomp1 = GNU OpenMP runtime; required by lightgbm / xgboost /
+# catboost (their compiled C++ extensions parallelise tree building
+# via libgomp.so.1 and otherwise fail with ImportError at runtime).
+
+# Harbor's Singularity bootstrap.sh hardcodes _SYS_PY=/usr/bin/python3 and
+# tries to apt-get install if missing. That apt path fragile-fails under
+# apptainer's --containall + writable-tmpfs, killing the in-sandbox FastAPI
+# server in <200ms. python:3.10-slim ships /usr/local/bin/python3 only —
+# symlink so bootstrap.sh's path check passes without apt-get.
+RUN ln -sf /usr/local/bin/python3 /usr/bin/python3
+
+# Pre-create the Harbor server venv with uvicorn+fastapi baked in.
+# Without this, bootstrap.sh would create the venv and pip-install at
+# trial-start time — slow AND it fragile-fails on transient pypi hiccups
+# from inside the sandbox. Pre-baking takes ~30 MB and turns the
+# bootstrap into a no-op: both `if [ ! -x "$_HARBOR_PY" ]` and the
+# `import uvicorn; import fastapi` check pass immediately.
+RUN python3 -m venv /opt/harbor-server && \
+    /opt/harbor-server/bin/pip install --no-cache-dir uvicorn fastapi
+
+# Common scientific / financial dependencies. Pinned versions keep the
+# image reproducible. numpy at 2.0.x avoids the 2.1+ ABI churn that
+# breaks several of the boosting/HF wheels.
+# h5py is REQUIRED here even though it's only an indirect dep in
+# pyproject.toml: every task ships dataset.h5 (HDF5) and the
+# Phase-4 generated load.py / evaluator_assembled.py.j2 both
+# `import h5py` at module top, so the agent container fails at
+# task.load_data() without it.
+# requests is REQUIRED for the bundled in-container submission
+# helper (``data/harbor_submit.py`` for auto-pipe tasks and
+# ``data/harbor_submit.py`` for curated tasks). Both
+# `import requests` to POST predictions to the host verifier.
+RUN pip install --no-cache-dir \
+    numpy==2.0.2 \
+    pandas==2.3.3 \
+    tqdm==4.67.3 \
+    pyyaml==6.0.3 \
+    scikit-learn==1.7.2 \
+    scipy==1.15.3 \
+    matplotlib==3.10.6 \
+    ml_collections==1.1.0 \
+    torch==2.11.0 \
+    h5py==3.16.0 \
+    requests==2.32.3 \
+    pydantic \
+    websockets
+
+# Financial / ML stack — gradient boosting, econometrics, GARCH
+# volatility, HuggingFace transformers. tensorflow/keras/optuna
+# intentionally excluded to keep the image lean and avoid the
+# downstream conflicts that tensorflow's numpy<2.1 constraint and
+# CUDA wheel pulls otherwise introduce. Aligns with the MODEL CHOICE
+# menu in examples/prompts/financial_{simple,expert}.txt.
+RUN pip install --no-cache-dir \
+    xgboost==2.1.4 \
+    lightgbm==4.6.0 \
+    catboost==1.2.8 \
+    statsmodels==0.14.4 \
+    arch==7.2.0 \
+    transformers==4.49.0
+
+# Shared evaluation utilities (used by every task's test.sh)
+COPY data/knowledge_base/rewards/ /openfinai/eval/
+COPY src/openfinai_harbor/eval/run_evaluation.py /openfinai/eval/run_evaluation.py
+
+# Runtime imports for LLM-generated task.py
+# Ship the task contracts as a namespace package without the orchestration
+# dependencies imported by the full pipeline package. The reward package is
+# also placed at its canonical import path.
+COPY src/openfinai_pipeline/benchmark/contracts.py /openfinai/openfinai_pipeline/benchmark/contracts.py
+COPY data/knowledge_base/rewards/ /openfinai/data/knowledge_base/rewards/
+
+# Realtime trading imports the shared schema, settings, provider, executor,
+# buffer, and task modules. Ship the package together to satisfy transitive
+# imports without installing the full host pipeline.
+COPY src/openfinai_pipeline/schemas.py /openfinai/openfinai_pipeline/schemas.py
+COPY src/openfinai_pipeline/settings.py /openfinai/openfinai_pipeline/settings.py
+COPY src/openfinai_pipeline/realtime/ /openfinai/openfinai_pipeline/realtime/
+
+ENV PYTHONPATH=/openfinai
+
+WORKDIR /workspace
